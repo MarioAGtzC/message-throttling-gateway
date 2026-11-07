@@ -6,6 +6,7 @@ import {
   parseParams,
   parseValue,
   toHash,
+  type Field,
   type Params,
 } from '../model/params';
 import { computeResult, type BurstResult } from '../model/result';
@@ -33,6 +34,9 @@ export function initDemo(): void {
   const inputs = new Map(
     FIELDS.map((field) => [field, element<HTMLInputElement>(`#demo input[name="${field.key}"]`)]),
   );
+  const hints = new Map(FIELDS.map((field) => [field, element(`#hint-${field.key}`)]));
+  // Kept as nodes: the backoff hint has a <sup>.
+  const hintNodes = new Map([...hints].map(([field, hint]) => [field, [...hint.childNodes]]));
   let params: Params = defaultParams();
   let announceTimer: ReturnType<typeof setTimeout> | undefined;
 
@@ -52,10 +56,20 @@ export function initDemo(): void {
     return result;
   }
 
+  // The red border alone is not enough: the hint under the input says what is wrong.
+  function setValid(field: Field, valid: boolean) {
+    inputs.get(field)?.setAttribute('aria-invalid', String(!valid));
+    const hint = hints.get(field);
+    if (!hint) return;
+    if (valid) hint.replaceChildren(...(hintNodes.get(field) ?? []));
+    else
+      hint.textContent = `Not valid: enter a whole number from ${formatNumber(field.min)} to ${formatNumber(field.max)}.`;
+  }
+
   function fillInputs() {
     for (const [field, input] of inputs) {
       input.value = String(field.get(params));
-      input.setAttribute('aria-invalid', 'false');
+      setValid(field, true);
     }
   }
 
@@ -93,7 +107,7 @@ export function initDemo(): void {
     const field = FIELDS.find((f) => f.key === input.name);
     if (!field) return;
     const value = parseValue(field, input.value);
-    input.setAttribute('aria-invalid', String(value === undefined));
+    setValid(field, value !== undefined);
     if (value === undefined) return;
     field.set(params, value);
     syncHash();

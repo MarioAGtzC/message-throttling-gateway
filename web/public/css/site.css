@@ -226,6 +226,10 @@ input[aria-invalid='true'] {
   border-color: var(--status-failed);
 }
 
+input[aria-invalid='true'] + small {
+  color: var(--status-failed);
+}
+
 button {
   min-height: 2.75rem;
   padding: 0.5rem 0.9rem;

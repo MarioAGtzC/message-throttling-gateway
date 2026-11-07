@@ -93,6 +93,24 @@ describe('live demo', () => {
     expect(out('sent')).toBe('10');
   });
 
+  test('explains an invalid input in text, not only with color', () => {
+    load('');
+    const hint = $('#hint-messages');
+    const original = hint.textContent;
+    type('messages', 'abc');
+    expect(hint.textContent).toBe('Not valid: enter a whole number from 1 to 1,000,000,000.');
+    type('messages', '10');
+    expect(hint.textContent).toBe(original);
+
+    type('attempts', '0');
+    $<HTMLButtonElement>('#demo-reset').click();
+    expect($('#hint-attempts').textContent).not.toContain('Not valid');
+
+    type('backoff', '0');
+    type('backoff', '500');
+    expect($('#hint-backoff sup')).not.toBeNull();
+  });
+
   test('resets to the code values', () => {
     load('#messages=7&attempts=2&bad=1');
     $<HTMLButtonElement>('#demo-reset').click();
