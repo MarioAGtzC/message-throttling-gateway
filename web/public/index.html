@@ -3,16 +3,230 @@
   <head>
     <meta charset="utf-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <meta name="color-scheme" content="dark" />
     <meta
       http-equiv="Content-Security-Policy"
       content="default-src 'self'; script-src 'self'; style-src 'self' https://fonts.googleapis.com; font-src https://fonts.gstatic.com; img-src 'self' data:; base-uri 'none'; form-action 'none'; object-src 'none'"
     />
     <title>Message Throttling Gateway</title>
+    <meta
+      name="description"
+      content="How a gateway absorbs a burst of messages and delivers them to a provider limited to 100 requests per second."
+    />
+    <link rel="stylesheet" href="css/site.css" />
     <script type="module" src="js/app.js"></script>
   </head>
   <body>
-    <main>
-      <h1>Message Throttling Gateway</h1>
+    <a class="skip-link" href="#main">Skip to content</a>
+    <header class="site-header">
+      <div class="column">
+        <h1>Message Throttling Gateway</h1>
+        <p class="lead">
+          A gateway that accepts bursts of messages and delivers them to a provider limited to 100
+          requests per second, with persistence, retries and idempotent intake.
+        </p>
+      </div>
+    </header>
+
+    <main id="main" tabindex="-1">
+      <section id="demo" class="wide" aria-labelledby="demo-title">
+        <h2 id="demo-title">Live demo</h2>
+        <p class="note">
+          Change any number and the result updates. The defaults are the values in the gateway's
+          code.
+        </p>
+        <div class="split">
+          <form class="demo-inputs" novalidate>
+            <div class="field">
+              <label for="in-messages">Messages in the burst</label>
+              <input
+                id="in-messages"
+                name="messages"
+                type="number"
+                inputmode="numeric"
+                min="1"
+                max="1000000000"
+                step="1"
+                aria-describedby="hint-messages"
+              />
+              <small id="hint-messages">1 to 1,000,000,000</small>
+            </div>
+            <fieldset>
+              <legend>Worker limit</legend>
+              <div class="field">
+                <label for="in-workerMax">Jobs per window</label>
+                <input
+                  id="in-workerMax"
+                  name="workerMax"
+                  type="number"
+                  inputmode="numeric"
+                  min="1"
+                  max="1000000"
+                  step="1"
+                  aria-describedby="hint-workerMax"
+                />
+                <small id="hint-workerMax">1 to 1,000,000</small>
+              </div>
+              <div class="field">
+                <label for="in-workerWindow">Window (ms)</label>
+                <input
+                  id="in-workerWindow"
+                  name="workerWindow"
+                  type="number"
+                  inputmode="numeric"
+                  min="1"
+                  max="86400000"
+                  step="1"
+                  aria-describedby="hint-workerWindow"
+                />
+                <small id="hint-workerWindow">1 ms to 24 h</small>
+              </div>
+            </fieldset>
+            <fieldset>
+              <legend>Provider limit</legend>
+              <div class="field">
+                <label for="in-providerMax">Requests per window</label>
+                <input
+                  id="in-providerMax"
+                  name="providerMax"
+                  type="number"
+                  inputmode="numeric"
+                  min="1"
+                  max="1000000"
+                  step="1"
+                  aria-describedby="hint-providerMax"
+                />
+                <small id="hint-providerMax">1 to 1,000,000</small>
+              </div>
+              <div class="field">
+                <label for="in-providerWindow">Window (ms)</label>
+                <input
+                  id="in-providerWindow"
+                  name="providerWindow"
+                  type="number"
+                  inputmode="numeric"
+                  min="1"
+                  max="86400000"
+                  step="1"
+                  aria-describedby="hint-providerWindow"
+                />
+                <small id="hint-providerWindow">1 ms to 24 h</small>
+              </div>
+            </fieldset>
+            <div class="field">
+              <label for="in-attempts">Attempts per message</label>
+              <input
+                id="in-attempts"
+                name="attempts"
+                type="number"
+                inputmode="numeric"
+                min="1"
+                max="100"
+                step="1"
+                aria-describedby="hint-attempts"
+              />
+              <small id="hint-attempts">1 to 100, the first try included</small>
+            </div>
+            <div class="field">
+              <label for="in-backoff">Backoff base delay (ms)</label>
+              <input
+                id="in-backoff"
+                name="backoff"
+                type="number"
+                inputmode="numeric"
+                min="1"
+                max="86400000"
+                step="1"
+                aria-describedby="hint-backoff"
+              />
+              <small id="hint-backoff">Retry n waits 2<sup>n−1</sup> × this delay</small>
+            </div>
+          </form>
+
+          <section class="card" aria-labelledby="demo-result-title">
+            <h3 id="demo-result-title">Result</h3>
+            <p id="demo-custom" class="badge" hidden>
+              <span>custom: differs from the gateway's code</span>
+              <button id="demo-reset" type="button">Reset to code values</button>
+            </p>
+            <p id="demo-ignored" class="note" hidden></p>
+            <dl class="results mono">
+              <div>
+                <dt>Total time</dt>
+                <dd data-out="time"></dd>
+              </div>
+              <div>
+                <dt>Average rate</dt>
+                <dd data-out="rate"></dd>
+              </div>
+              <div>
+                <dt>Sent</dt>
+                <dd class="status-sent" data-out="sent"></dd>
+              </div>
+              <div>
+                <dt><code>429</code>s</dt>
+                <dd class="status-retrying" data-out="count429"></dd>
+              </div>
+              <div>
+                <dt>Retries</dt>
+                <dd class="status-retrying" data-out="retries"></dd>
+              </div>
+              <div>
+                <dt>Failed</dt>
+                <dd class="status-failed" data-out="failed"></dd>
+              </div>
+              <div>
+                <dt>Lost</dt>
+                <dd data-out="lost"></dd>
+              </div>
+              <div>
+                <dt>Duplicated</dt>
+                <dd data-out="duplicated"></dd>
+              </div>
+            </dl>
+            <p id="demo-estimated" class="note" hidden>
+              <strong class="status-retrying">Estimated.</strong> The worker can send faster than
+              the provider accepts, so some attempts get <code>429</code> and are retried. These
+              numbers assume every attempt succeeds with probability provider rate ÷ worker rate.
+            </p>
+            <p id="demo-announce" class="visually-hidden" aria-live="polite"></p>
+          </section>
+        </div>
+      </section>
+
+      <section id="steps" class="wide" aria-labelledby="steps-title">
+        <h2 id="steps-title">1. Step by step</h2>
+      </section>
+
+      <section id="limits" class="column" aria-labelledby="limits-title">
+        <h2 id="limits-title">2. Two limits, one rate</h2>
+      </section>
+
+      <section id="retries" class="column" aria-labelledby="retries-title">
+        <h2 id="retries-title">3. Retries and responses</h2>
+      </section>
+
+      <section id="idempotency" class="column" aria-labelledby="idempotency-title">
+        <h2 id="idempotency-title">4. Idempotency</h2>
+      </section>
+
+      <section id="limitations" class="column" aria-labelledby="limitations-title">
+        <h2 id="limitations-title">5. Known limitations</h2>
+      </section>
+
+      <section id="decisions" class="column" aria-labelledby="decisions-title">
+        <h2 id="decisions-title">6. Design decisions</h2>
+      </section>
+
+      <section id="run" class="column" aria-labelledby="run-title">
+        <h2 id="run-title">Run it for real</h2>
+      </section>
     </main>
+
+    <footer class="site-footer">
+      <div class="column">
+        <p>This page computes and scripts the gateway's behavior. It never calls a real service.</p>
+      </div>
+    </footer>
   </body>
 </html>

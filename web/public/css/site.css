@@ -1,0 +1,299 @@
+/* Dark theme only: the page stays dark whatever the OS setting is. */
+:root {
+  color-scheme: dark;
+
+  --bg: #0f1115;
+  --surface: #171a21;
+  --border: #2a2f3a;
+  --text: #e6e8eb;
+  --muted: #9aa3ae;
+  --link: #7ab7ff;
+  --focus: #ffd166;
+
+  /* One accent per message status. */
+  --status-pending: #9aa3ae;
+  --status-retrying: #f2b84b;
+  --status-sent: #4cc38a;
+  --status-failed: #f2555a;
+
+  --font-sans: system-ui, -apple-system, 'Segoe UI', Roboto, sans-serif;
+  --font-mono: ui-monospace, 'SFMono-Regular', Menlo, Consolas, 'Liberation Mono', monospace;
+
+  --gutter: 1rem;
+  --reading: 68ch;
+  --wide: 72rem;
+}
+
+*,
+*::before,
+*::after {
+  box-sizing: border-box;
+}
+
+body {
+  margin: 0;
+  background: var(--bg);
+  color: var(--text);
+  font-family: var(--font-sans);
+  font-size: 1rem;
+  line-height: 1.6;
+  overflow-wrap: break-word;
+}
+
+h1,
+h2,
+h3 {
+  line-height: 1.25;
+  text-wrap: balance;
+}
+
+h1 {
+  font-size: clamp(1.75rem, 5vw, 2.5rem);
+  margin: 0 0 0.5rem;
+}
+
+h2 {
+  font-size: 1.5rem;
+  margin: 0 0 1rem;
+}
+
+a {
+  color: var(--link);
+}
+
+:focus-visible {
+  outline: 2px solid var(--focus);
+  outline-offset: 2px;
+}
+
+code,
+kbd,
+samp,
+pre,
+.mono {
+  font-family: var(--font-mono);
+  font-size: 0.95em;
+}
+
+pre {
+  overflow-x: auto;
+}
+
+/* Layout: a ~68ch reading column; the demo and the steps use the full width. */
+.column,
+.wide {
+  margin-inline: auto;
+  padding-inline: var(--gutter);
+}
+
+.column {
+  max-width: calc(var(--reading) + 2 * var(--gutter));
+}
+
+.wide {
+  max-width: calc(var(--wide) + 2 * var(--gutter));
+}
+
+main > section {
+  padding-block: 2.5rem;
+  border-top: 1px solid var(--border);
+}
+
+main > section:first-child {
+  border-top: 0;
+}
+
+main:focus {
+  outline: none;
+}
+
+.site-header {
+  padding-block: 3rem 1.5rem;
+}
+
+.lead {
+  color: var(--muted);
+  font-size: 1.125rem;
+  max-width: var(--reading);
+  margin: 0;
+}
+
+.site-footer {
+  border-top: 1px solid var(--border);
+  color: var(--muted);
+  font-size: 0.875rem;
+  padding-block: 2rem;
+}
+
+.skip-link {
+  position: absolute;
+  left: var(--gutter);
+  top: -3rem;
+  padding: 0.5rem 0.75rem;
+  background: var(--surface);
+  color: var(--text);
+  z-index: 1;
+}
+
+.skip-link:focus {
+  top: var(--gutter);
+}
+
+/* Status accents, shared by the demo, the steps and the diagram. */
+.status-pending {
+  color: var(--status-pending);
+}
+
+.status-retrying {
+  color: var(--status-retrying);
+}
+
+.status-sent {
+  color: var(--status-sent);
+}
+
+.status-failed {
+  color: var(--status-failed);
+}
+
+/* Panels that sit side by side on wide screens and stack on phones. */
+.split {
+  display: grid;
+  gap: 1.5rem;
+  grid-template-columns: repeat(auto-fit, minmax(min(100%, 20rem), 1fr));
+}
+
+.visually-hidden {
+  position: absolute;
+  width: 1px;
+  height: 1px;
+  overflow: hidden;
+  clip-path: inset(50%);
+  white-space: nowrap;
+}
+
+.note {
+  color: var(--muted);
+}
+
+/* Live demo */
+.demo-inputs {
+  display: grid;
+  gap: 1rem;
+  align-content: start;
+}
+
+.demo-inputs fieldset {
+  display: grid;
+  gap: 0.75rem;
+  margin: 0;
+  padding: 0.75rem 1rem 1rem;
+  border: 1px solid var(--border);
+  border-radius: 6px;
+}
+
+.demo-inputs legend {
+  padding-inline: 0.25rem;
+  font-weight: 600;
+}
+
+.field {
+  display: grid;
+  gap: 0.25rem;
+}
+
+.field small {
+  color: var(--muted);
+}
+
+input,
+button {
+  font: inherit;
+  color: var(--text);
+}
+
+input {
+  width: 100%;
+  min-height: 2.75rem;
+  padding: 0.5rem 0.75rem;
+  background: var(--bg);
+  border: 1px solid var(--border);
+  border-radius: 4px;
+  font-family: var(--font-mono);
+}
+
+input[aria-invalid='true'] {
+  border-color: var(--status-failed);
+}
+
+input[aria-invalid='true'] + small {
+  color: var(--status-failed);
+}
+
+button {
+  min-height: 2.75rem;
+  padding: 0.5rem 0.9rem;
+  background: var(--surface);
+  border: 1px solid var(--link);
+  border-radius: 4px;
+  cursor: pointer;
+}
+
+button:hover {
+  background: var(--border);
+}
+
+.card {
+  align-self: start;
+  padding: 1.25rem;
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: 8px;
+}
+
+.card h3 {
+  margin: 0 0 1rem;
+}
+
+.badge {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 0.5rem 1rem;
+  margin: 0 0 1rem;
+  color: var(--status-retrying);
+}
+
+.badge[hidden] {
+  display: none;
+}
+
+.results {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(min(100%, 7.5rem), 1fr));
+  gap: 1rem;
+  margin: 0;
+}
+
+.results dt {
+  color: var(--muted);
+  font-family: var(--font-sans);
+  font-size: 0.875rem;
+}
+
+.results dd {
+  margin: 0;
+  font-size: 1.25rem;
+  font-variant-numeric: tabular-nums;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  *,
+  *::before,
+  *::after {
+    animation-duration: 0.01ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: 0.01ms !important;
+    scroll-behavior: auto !important;
+  }
+}
