@@ -132,9 +132,7 @@ describe('SCENARIOS', () => {
     const intakes = steps
       .filter((s) => s.hop === 'intake' && s.call?.id === 'm1')
       .map((s) => s.call?.status);
-    expect(intakes[0]).toBe(202);
-    expect(intakes.slice(1)).toEqual(expect.arrayContaining([200]));
-    expect(intakes.slice(1).every((status) => status === 200)).toBe(true);
+    expect(intakes).toEqual([202, 200, 200]);
     const deliveries = steps.filter(
       (s) => s.hop === 'provider' && s.call?.id === 'm1' && s.call.status === 200,
     );
