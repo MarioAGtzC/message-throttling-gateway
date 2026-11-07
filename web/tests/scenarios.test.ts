@@ -1,5 +1,5 @@
 import { DEFAULT_POLICY } from '../src/model/policy';
-import { SCENARIOS, type Scenario, type Status, type Step } from '../src/model/scenarios';
+import { SCENARIOS, type Scenario, type Step } from '../src/model/scenarios';
 
 const byId = (id: string): Scenario => {
   const scenario = SCENARIOS.find((s) => s.id === id);
@@ -33,18 +33,32 @@ describe('SCENARIOS', () => {
       });
     });
 
-    test('status counts add up and every queued job has a row that is not SENT', () => {
+    test('every status matches where the message is in the queue', () => {
       for (const step of scenario.steps) {
-        const rows = Object.values(step.rows);
-        const counts: Record<Status, number> = { PENDING: 0, RETRYING: 0, SENT: 0, FAILED: 0 };
-        rows.forEach((row) => counts[row.status]++);
-        expect(counts.PENDING + counts.RETRYING + counts.SENT + counts.FAILED).toBe(rows.length);
-
-        const queued = [...step.waiting, ...step.delayed.map((job) => job.id)];
+        const delayed = step.delayed.map((job) => job.id);
+        const queued = [...step.waiting, ...delayed];
         expect(new Set(queued).size).toBe(queued.length);
-        for (const id of queued) {
-          expect(step.rows[id]).toBeDefined();
-          expect(step.rows[id]?.status).not.toBe('SENT');
+        for (const id of queued) expect(step.rows[id]).toBeDefined();
+
+        for (const [id, row] of Object.entries(step.rows)) {
+          const where = { id, status: row.status };
+          const waits = step.waiting.includes(id);
+          const isDelayed = delayed.includes(id);
+          if (row.status === 'SENT')
+            expect({ ...where, queued: waits || isDelayed }).toEqual({ ...where, queued: false });
+          // The one exception: saved, then the process crashed before the job was added.
+          if (row.status === 'PENDING' && !(scenario.id === 'restart' && id === 'm3'))
+            expect({ ...where, waits }).toEqual({ ...where, waits: true });
+          if (row.status === 'RETRYING')
+            expect({ ...where, waits }).toEqual({ ...where, waits: false });
+          if (row.status === 'FAILED')
+            expect({
+              ...where,
+              delayedOrDone: isDelayed || row.attempts === DEFAULT_POLICY.attempts,
+            }).toEqual({
+              ...where,
+              delayedOrDone: true,
+            });
         }
       }
     });
