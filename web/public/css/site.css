@@ -431,11 +431,11 @@ button:disabled:hover {
   fill: var(--focus);
 }
 
-/* The request travels down the active hop, only when the visitor allows motion. */
+/* The request travels down the active hop three times (under 5 s, WCAG 2.2.2), only when motion is allowed. */
 @media (prefers-reduced-motion: no-preference) {
   .diagram .hop[data-active='true'] line {
     stroke-dasharray: 6 6;
-    animation: hop-flow 0.8s linear infinite;
+    animation: hop-flow 0.8s linear 3;
   }
 }
 
