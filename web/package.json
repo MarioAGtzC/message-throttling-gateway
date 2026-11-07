@@ -8,7 +8,7 @@
     "build": "esbuild src/main.ts --bundle --format=esm --target=es2022 --minify --outfile=public/js/app.js",
     "lint": "eslint . && prettier --check .",
     "format": "prettier --write .",
-    "typecheck": "tsc --noEmit",
+    "typecheck": "tsc --noEmit && tsc --noEmit -p tests",
     "test": "jest",
     "size": "node scripts/check-size.mjs"
   },

@@ -5,6 +5,6 @@ module.exports = {
   testEnvironment: 'node',
   roots: ['<rootDir>/tests'],
   transform: {
-    ...createDefaultPreset().transform,
+    ...createDefaultPreset({ tsconfig: '<rootDir>/tests/tsconfig.json' }).transform,
   },
 };
