@@ -136,6 +136,13 @@ describe('live demo', () => {
     expect(live.textContent).toContain('1s');
   });
 
+  test('names the result card with its heading', () => {
+    load('');
+    const card = $('#demo-result-title').closest('.card');
+    expect(card?.tagName).toBe('SECTION');
+    expect(card?.getAttribute('aria-labelledby')).toBe('demo-result-title');
+  });
+
   test('labels the rate as an average', () => {
     load('');
     expect($('[data-out="rate"]').closest('div')?.textContent).toContain('Average rate');
