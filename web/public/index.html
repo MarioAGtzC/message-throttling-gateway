@@ -196,6 +196,63 @@
 
       <section id="steps" class="wide" aria-labelledby="steps-title">
         <h2 id="steps-title">1. Step by step</h2>
+        <p class="note">
+          Small scripted scenarios. Both limits are scaled down to 3 requests per second so each one
+          fits in a few steps; attempts and backoff are the gateway's.
+        </p>
+        <div class="steps-controls">
+          <div class="field">
+            <label for="steps-scenario">Scenario</label>
+            <select id="steps-scenario"></select>
+          </div>
+          <div class="steps-buttons" role="group" aria-label="Move through the steps">
+            <button id="steps-prev" type="button">Previous</button>
+            <button id="steps-next" type="button">Next</button>
+            <button id="steps-last" type="button">Last</button>
+          </div>
+          <p id="steps-counter" class="mono"></p>
+        </div>
+        <div class="split">
+          <div class="steps-story">
+            <p id="steps-clock" class="mono"></p>
+            <p id="steps-narration" aria-live="polite"></p>
+          </div>
+          <section class="card" aria-labelledby="steps-state-title">
+            <h3 id="steps-state-title">State</h3>
+            <dl class="steps-state mono">
+              <div>
+                <dt>Waiting</dt>
+                <dd id="steps-waiting"></dd>
+              </div>
+              <div>
+                <dt>Delayed</dt>
+                <dd id="steps-delayed"></dd>
+              </div>
+              <div>
+                <dt>Worker window</dt>
+                <dd id="steps-worker"></dd>
+              </div>
+              <div>
+                <dt>Provider window</dt>
+                <dd id="steps-provider"></dd>
+              </div>
+            </dl>
+            <table class="mono">
+              <caption class="visually-hidden">
+                Messages in PostgreSQL
+              </caption>
+              <thead>
+                <tr>
+                  <th scope="col">Id</th>
+                  <th scope="col">Status</th>
+                  <th scope="col">Retries</th>
+                  <th scope="col">Attempts</th>
+                </tr>
+              </thead>
+              <tbody id="steps-rows"></tbody>
+            </table>
+          </section>
+        </div>
       </section>
 
       <section id="limits" class="column" aria-labelledby="limits-title">
