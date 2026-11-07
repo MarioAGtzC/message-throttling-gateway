@@ -58,6 +58,12 @@ describe('live demo', () => {
     expect(ignored.hidden).toBe(false);
     expect(ignored.textContent).toContain('workerMax');
     expect(ignored.textContent).toContain('nope');
+    expect(location.hash).toBe('#messages=200');
+  });
+
+  test('leaves a clean link untouched', () => {
+    load('#attempts=3&messages=50');
+    expect(location.hash).toBe('#attempts=3&messages=50');
   });
 
   test('updates the card, the badge and the hash on every input', () => {

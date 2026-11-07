@@ -87,6 +87,8 @@ export function initDemo(): void {
     const parsed = parseParams(location.hash);
     params = parsed.params;
     showIgnored(parsed.ignored);
+    // Drop the ignored keys so a link shared again only carries valid values.
+    if (parsed.ignored.length > 0) syncHash();
     fillInputs();
     render();
   }
