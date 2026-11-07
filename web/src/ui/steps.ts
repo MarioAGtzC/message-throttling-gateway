@@ -1,7 +1,8 @@
 import { formatNumber } from '../model/format';
 import { SCENARIOS, type Scenario } from '../model/scenarios';
+import { renderDiagram } from './diagram';
 
-function element<T extends HTMLElement>(selector: string): T {
+function element<T extends Element = HTMLElement>(selector: string): T {
   const found = document.querySelector<T>(selector);
   if (!found) throw new Error(`Step by step: missing ${selector}`);
   return found;
@@ -23,6 +24,7 @@ export function initSteps(): void {
   const worker = element('#steps-worker');
   const provider = element('#steps-provider');
   const rows = element('#steps-rows');
+  const diagram = element<SVGSVGElement>('#steps-diagram');
 
   select.replaceChildren(...SCENARIOS.map((s) => new Option(s.title, s.id)));
   let scenario: Scenario = SCENARIOS[0] as Scenario;
@@ -37,6 +39,7 @@ export function initSteps(): void {
     counter.textContent = `Step ${index + 1} of ${end + 1}`;
     clock.textContent = `t = ${ms(step.clockMs)}`;
     narration.textContent = step.narration;
+    renderDiagram(diagram, step);
     waiting.textContent = step.waiting.join(', ') || 'empty';
     delayed.textContent =
       step.delayed

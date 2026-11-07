@@ -379,6 +379,72 @@ button:disabled:hover {
   font-weight: 600;
 }
 
+/* Flow diagram */
+.diagram {
+  width: 100%;
+  max-width: 20rem;
+  height: auto;
+}
+
+.diagram rect {
+  fill: var(--surface);
+  stroke: var(--border);
+  stroke-width: 1.5;
+}
+
+.diagram text {
+  fill: var(--text);
+  font-family: var(--font-sans);
+  font-size: 15px;
+}
+
+.diagram .node-title {
+  font-weight: 600;
+}
+
+.diagram .node-sub,
+.diagram .hop-count {
+  fill: var(--muted);
+  font-family: var(--font-mono);
+  font-size: 13px;
+}
+
+.diagram .hop line {
+  stroke: var(--border);
+  stroke-width: 2;
+}
+
+.diagram .hop polygon {
+  fill: var(--border);
+}
+
+.diagram .hop[data-active='true'] line {
+  stroke: var(--focus);
+  stroke-width: 3;
+}
+
+.diagram .hop[data-active='true'] polygon {
+  fill: var(--focus);
+}
+
+.diagram .hop[data-active='true'] .hop-count {
+  fill: var(--focus);
+}
+
+/* The request travels down the active hop, only when the visitor allows motion. */
+@media (prefers-reduced-motion: no-preference) {
+  .diagram .hop[data-active='true'] line {
+    stroke-dasharray: 6 6;
+    animation: hop-flow 0.8s linear infinite;
+  }
+}
+
+@keyframes hop-flow {
+  to {
+    stroke-dashoffset: -12;
+  }
+}
+
 @media (prefers-reduced-motion: reduce) {
   *,
   *::before,
