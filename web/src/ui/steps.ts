@@ -19,6 +19,7 @@ export function initSteps(): void {
   const counter = element('#steps-counter');
   const clock = element('#steps-clock');
   const narration = element('#steps-narration');
+  const announce = element('#steps-announce');
   const waiting = element('#steps-waiting');
   const delayed = element('#steps-delayed');
   const worker = element('#steps-worker');
@@ -39,6 +40,8 @@ export function initSteps(): void {
     counter.textContent = `Step ${index + 1} of ${end + 1}`;
     clock.textContent = `t = ${ms(step.clockMs)}`;
     narration.textContent = step.narration;
+    // One live region reads the step number and its narration together.
+    announce.textContent = `${counter.textContent}. ${step.narration}`;
     renderDiagram(diagram, step);
     waiting.textContent = step.waiting.join(', ') || 'empty';
     delayed.textContent =

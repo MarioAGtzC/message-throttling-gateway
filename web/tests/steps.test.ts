@@ -39,10 +39,19 @@ describe('step by step', () => {
     expect(select().value).toBe(scenario(0).id);
     expect(counter()).toBe(`Step 1 of ${scenario(0).steps.length}`);
     expect(narration()).toBe(narrationOf(scenario(0), 0));
-    expect($('#steps-narration').getAttribute('aria-live')).toBe('polite');
     expect(button('prev').disabled).toBe(true);
     expect(button('next').disabled).toBe(false);
     expect(button('last').disabled).toBe(false);
+  });
+
+  test('announces the step number with the narration in one live region', () => {
+    const announce = $('#steps-announce');
+    expect(announce.getAttribute('aria-live')).toBe('polite');
+    expect($('#steps-narration').hasAttribute('aria-live')).toBe(false);
+    button('next').click();
+    expect(announce.textContent).toBe(
+      `Step 2 of ${scenario(0).steps.length}. ${narrationOf(scenario(0), 1)}`,
+    );
   });
 
   test('next and previous move one step', () => {
