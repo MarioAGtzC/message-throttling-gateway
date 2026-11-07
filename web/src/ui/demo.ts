@@ -83,8 +83,11 @@ export function initDemo(): void {
     ignoredNote.textContent = `Ignored from the link (unknown or out of range): ${keys.slice(0, 5).join(', ')}${keys.length > 5 ? ', …' : ''}.`;
   }
 
-  function loadFromHash() {
-    const parsed = parseParams(location.hash);
+  function loadFromHash(event?: Event) {
+    // A hash that names an element (#steps, the skip link's #main) is a section link, not values.
+    const anchor = document.getElementById(location.hash.slice(1)) !== null;
+    if (anchor && event) return;
+    const parsed = parseParams(anchor ? '' : location.hash);
     params = parsed.params;
     showIgnored(parsed.ignored);
     // Drop the ignored keys so a link shared again only carries valid values.
