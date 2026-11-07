@@ -163,6 +163,126 @@ main:focus {
   grid-template-columns: repeat(auto-fit, minmax(min(100%, 20rem), 1fr));
 }
 
+.visually-hidden {
+  position: absolute;
+  width: 1px;
+  height: 1px;
+  overflow: hidden;
+  clip-path: inset(50%);
+  white-space: nowrap;
+}
+
+.note {
+  color: var(--muted);
+}
+
+/* Live demo */
+.demo-inputs {
+  display: grid;
+  gap: 1rem;
+  align-content: start;
+}
+
+.demo-inputs fieldset {
+  display: grid;
+  gap: 0.75rem;
+  margin: 0;
+  padding: 0.75rem 1rem 1rem;
+  border: 1px solid var(--border);
+  border-radius: 6px;
+}
+
+.demo-inputs legend {
+  padding-inline: 0.25rem;
+  font-weight: 600;
+}
+
+.field {
+  display: grid;
+  gap: 0.25rem;
+}
+
+.field small {
+  color: var(--muted);
+}
+
+input,
+button {
+  font: inherit;
+  color: var(--text);
+}
+
+input {
+  width: 100%;
+  min-height: 2.75rem;
+  padding: 0.5rem 0.75rem;
+  background: var(--bg);
+  border: 1px solid var(--border);
+  border-radius: 4px;
+  font-family: var(--font-mono);
+}
+
+input[aria-invalid='true'] {
+  border-color: var(--status-failed);
+}
+
+button {
+  min-height: 2.75rem;
+  padding: 0.5rem 0.9rem;
+  background: var(--surface);
+  border: 1px solid var(--link);
+  border-radius: 4px;
+  cursor: pointer;
+}
+
+button:hover {
+  background: var(--border);
+}
+
+.card {
+  align-self: start;
+  padding: 1.25rem;
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: 8px;
+}
+
+.card h3 {
+  margin: 0 0 1rem;
+}
+
+.badge {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 0.5rem 1rem;
+  margin: 0 0 1rem;
+  color: var(--status-retrying);
+}
+
+.badge[hidden] {
+  display: none;
+}
+
+.results {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(min(100%, 9rem), 1fr));
+  gap: 1rem;
+  margin: 0;
+}
+
+.results dt {
+  color: var(--muted);
+  font-family: var(--font-sans);
+  font-size: 0.875rem;
+}
+
+.results dd {
+  margin: 0;
+  font-size: 1.25rem;
+  font-variant-numeric: tabular-nums;
+}
+
 @media (prefers-reduced-motion: reduce) {
   *,
   *::before,

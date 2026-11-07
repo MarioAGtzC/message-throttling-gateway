@@ -17,6 +17,12 @@ describe('formatDuration', () => {
 
   test('very long durations stay in days', () => {
     expect(formatDuration(1000 * 86_400_000)).toBe('1,000d');
+    expect(formatDuration(36_500 * 86_400_000)).toBe('36,500d');
+  });
+
+  test('durations over 100 years are not spelled out in days', () => {
+    expect(formatDuration(36_525 * 86_400_000 + 1000)).toBe('more than 100 years');
+    expect(formatDuration(1e15)).toBe('more than 100 years');
   });
 });
 

@@ -11,9 +11,12 @@ const UNITS: [suffix: string, ms: number][] = [
   ['s', 1000],
 ];
 
+const HUNDRED_YEARS_MS = 36_525 * 86_400_000;
+
 /** "16m 40s", "2h 46m 40s", "1h 5s"; under a second it shows milliseconds. */
 export function formatDuration(ms: number): string {
   if (Math.round(ms) < 1000) return `${Math.round(ms)} ms`;
+  if (ms > HUNDRED_YEARS_MS) return 'more than 100 years';
 
   let rest = Math.round(ms / 1000) * 1000;
   const parts: string[] = [];
