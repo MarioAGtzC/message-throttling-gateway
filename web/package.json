@@ -1,0 +1,28 @@
+{
+  "name": "web",
+  "version": "1.0.0",
+  "private": true,
+  "description": "Static web demo of the message throttling gateway",
+  "scripts": {
+    "dev": "esbuild src/main.ts --bundle --format=esm --target=es2022 --outfile=public/js/app.js --servedir=public --watch",
+    "build": "esbuild src/main.ts --bundle --format=esm --target=es2022 --minify --outfile=public/js/app.js",
+    "lint": "eslint . && prettier --check .",
+    "format": "prettier --write .",
+    "typecheck": "tsc --noEmit && tsc --noEmit -p tests",
+    "test": "jest",
+    "size": "node scripts/check-size.mjs"
+  },
+  "devDependencies": {
+    "@eslint/js": "^10.0.1",
+    "@types/jest": "^30.0.0",
+    "@types/node": "^24.19.2",
+    "esbuild": "^0.28.2",
+    "eslint": "^10.14.0",
+    "eslint-config-prettier": "^10.1.8",
+    "jest": "^30.5.2",
+    "prettier": "^3.9.10",
+    "ts-jest": "^29.4.15",
+    "typescript": "~6.0",
+    "typescript-eslint": "^8.72.1"
+  }
+}

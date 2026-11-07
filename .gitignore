@@ -2,3 +2,5 @@ node_modules/
 postgres/
 generated/
 .env
+web/public/js/app.js
+web/coverage/
