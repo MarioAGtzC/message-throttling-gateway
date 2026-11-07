@@ -156,7 +156,7 @@ export const SCENARIOS: readonly Scenario[] = [
       {
         clockMs: 1020,
         narration:
-          'm6 is SENT. Six messages left in the order they arrived, in two windows: ceil(6 / 3) × 1 s, with no 429.',
+          'm6 is SENT. Six messages were delivered in the order they arrived, in two windows: ceil(6 / 3) × 1 s, with no 429.',
         hop: 'provider',
         call: { id: 'm6', status: 200 },
         waiting: [],
