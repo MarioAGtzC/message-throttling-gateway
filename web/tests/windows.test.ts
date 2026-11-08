@@ -3,6 +3,9 @@
  */
 import { readFileSync } from 'node:fs';
 import { join } from 'node:path';
+import { formatDuration, formatNumber } from '../src/model/format';
+import { DEFAULT_POLICY } from '../src/model/policy';
+import { computeResult } from '../src/model/result';
 import { TIMELINE, timelineRows } from '../src/model/windows';
 import { initWindows } from '../src/ui/windows';
 
@@ -55,6 +58,28 @@ describe('two windows section', () => {
       'text/html',
     ).documentElement.innerHTML;
     initWindows();
+  });
+
+  test('the numbers in the text match the gateway code', () => {
+    // The copy is static, so this test is what catches a drift from DEFAULT_POLICY.
+    const text = ($('#limits').textContent ?? '').replace(/\s+/g, ' ');
+    const { workerLimit: w, providerLimit: p, messages } = DEFAULT_POLICY;
+    const limitRate = (w.max * 1000) / w.windowMs;
+    // Real rate = min(limit, 1 / time per job), at 5 ms and at 20 ms per job.
+    const atJobMs = (jobMs: number) => {
+      const rate = Math.min(limitRate, 1000 / jobMs);
+      const { durationMs } = computeResult({
+        ...DEFAULT_POLICY,
+        workerLimit: { max: rate, windowMs: 1000 },
+      });
+      return [`min(${limitRate}/s, ${1000 / jobMs}/s) = ${rate}/s`, formatDuration(durationMs)];
+    };
+
+    expect(text).toContain(`at most ${w.max} jobs per ${w.windowMs} ms`);
+    expect(text).toContain(`accepts ${p.max} requests per ${p.windowMs} ms`);
+    expect(text).toContain(`${formatNumber(messages)} messages`);
+    for (const piece of [...atJobMs(5), ...atJobMs(20)]) expect(text).toContain(piece);
+    expect(text).toContain(`each job takes under ${1000 / limitRate} ms`);
   });
 
   test('the "Show data" table rows match the dataset', () => {
