@@ -21,10 +21,10 @@ export function initRetries(policy: Policy = DEFAULT_POLICY): void {
     const waitMs = 2 ** (attempt - 1) * policy.backoff.delayMs;
     const label = document.createElement('strong');
     label.textContent = `Attempt ${attempt}`;
-    const then = document.createElement('span');
-    then.textContent = last ? 'FAILED' : `waits ${formatDuration(waitMs)}`;
-    then.className = last ? 'status-failed' : 'status-retrying';
-    li.append(label, ` at ${formatDuration(atMs)}, then `, then);
+    const outcome = document.createElement('span');
+    outcome.textContent = last ? 'FAILED' : `waits ${formatDuration(waitMs)}`;
+    outcome.className = last ? 'status-failed' : 'status-retrying';
+    li.append(label, ` at ${formatDuration(atMs)}, then `, outcome);
     items.push(li);
     atMs += waitMs;
   }
