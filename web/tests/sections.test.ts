@@ -44,6 +44,14 @@ describe('explanatory sections', () => {
       expect(fix.querySelector('summary')?.textContent).toBe('How would it be fixed?');
   });
 
+  test('section 2 quotes one dated Docker measurement', () => {
+    const notes = [...document.querySelectorAll('#limits .measured')];
+    expect(notes).toHaveLength(1);
+    const text = notes[0]?.textContent?.replace(/\s+/g, ' ') ?? '';
+    expect(text).toContain('Measured on Docker, 8 November 2026');
+    expect(text).toContain('10,000 messages');
+  });
+
   test('design decisions are questions with an answer', () => {
     const decisions = sectionDetails('decisions');
     expect(decisions).toHaveLength(6);

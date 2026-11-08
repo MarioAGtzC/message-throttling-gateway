@@ -356,6 +356,15 @@
         <p class="note">
           The live demo assumes each job takes under 10 ms, so the limit is the only bottleneck.
         </p>
+        <p class="note measured">
+          Measured on Docker, 8 November 2026 (Docker Desktop on Windows, 8 CPUs,
+          <code>docker compose</code> with the default settings): 10,000 messages from Mock A took
+          135 s from the first request to the last SENT, about 74 per second, where the live demo
+          gives 1m 40s. All 10,000 were SENT and none FAILED; 158 of them were retried after a
+          <code>429</code> at a window edge, 165 retries in all. At 74 per second one job took about
+          13.5 ms on average, retries included, so here the time per job, not the limit, set the
+          rate.
+        </p>
       </section>
 
       <section id="retries" class="column" aria-labelledby="retries-title">
