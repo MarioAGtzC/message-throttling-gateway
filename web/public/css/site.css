@@ -438,11 +438,6 @@ button:disabled:hover {
   fill: var(--status-retrying);
 }
 
-/* Five columns do not fit at 360 px; the table scrolls inside its box, never the page. */
-#limits-data {
-  overflow-x: auto;
-}
-
 #limits-data td {
   white-space: nowrap;
 }
@@ -494,7 +489,7 @@ summary {
   margin-block: 0.25rem;
 }
 
-/* If the responses table ever gets wider than the column, it scrolls inside its box, never the page. */
+/* A table wider than the column scrolls inside its box, never the page; the box takes keyboard focus to scroll. */
 .table-scroll {
   overflow-x: auto;
   margin-block: 1.5rem;

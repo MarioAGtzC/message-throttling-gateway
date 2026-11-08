@@ -314,21 +314,28 @@
         </figure>
         <details id="limits-data">
           <summary>Show data</summary>
-          <table class="mono">
-            <caption class="visually-hidden">
-              Requests in the timeline
-            </caption>
-            <thead>
-              <tr>
-                <th scope="col">At Mock C</th>
-                <th scope="col">Message</th>
-                <th scope="col">Worker window</th>
-                <th scope="col">Mock C window (count)</th>
-                <th scope="col">Answer</th>
-              </tr>
-            </thead>
-            <tbody id="limits-rows"></tbody>
-          </table>
+          <div
+            class="table-scroll"
+            tabindex="0"
+            role="region"
+            aria-label="Requests in the timeline"
+          >
+            <table class="mono">
+              <caption class="visually-hidden">
+                Requests in the timeline
+              </caption>
+              <thead>
+                <tr>
+                  <th scope="col">At Mock C</th>
+                  <th scope="col">Message</th>
+                  <th scope="col">Worker window</th>
+                  <th scope="col">Mock C window (count)</th>
+                  <th scope="col">Answer</th>
+                </tr>
+              </thead>
+              <tbody id="limits-rows"></tbody>
+            </table>
+          </div>
         </details>
         <h3>One job at a time</h3>
         <p>
@@ -380,7 +387,7 @@
             under a backlog it runs later than the timeline shows.
           </li>
         </ul>
-        <div class="table-scroll">
+        <div class="table-scroll" tabindex="0" role="region" aria-label="Answers of the gateway">
           <table id="responses">
             <caption>
               Answers of the gateway
@@ -629,7 +636,11 @@
         </p>
         <details>
           <summary>Show the commands</summary>
-          <pre><code>cp .env.example .env
+          <pre
+            tabindex="0"
+            role="region"
+            aria-label="Commands to run the gateway"
+          ><code>cp .env.example .env
 docker compose up --build
 
 # Send a burst of 100,000 messages through the gateway
@@ -638,7 +649,11 @@ curl -X POST "http://localhost:3002/simulate?count=100000"
 # Watch the totals per status grow at about 100 per second
 curl -s http://localhost:3000/messages</code></pre>
           <p>Unit tests:</p>
-          <pre><code>cd service-b
+          <pre
+            tabindex="0"
+            role="region"
+            aria-label="Commands to run the unit tests"
+          ><code>cd service-b
 npm install
 npm test</code></pre>
         </details>

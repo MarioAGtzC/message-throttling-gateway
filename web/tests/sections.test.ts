@@ -74,6 +74,16 @@ describe('explanatory sections', () => {
     expect(page).toEqual(expected);
   });
 
+  test('every box that can scroll sideways is a named region reachable with the keyboard', () => {
+    const boxes = [...document.querySelectorAll('.table-scroll, #run pre')];
+    expect(boxes.length).toBe(4);
+    for (const box of boxes) {
+      expect(box.getAttribute('tabindex')).toBe('0');
+      expect(box.getAttribute('role')).toBe('region');
+      expect(box.getAttribute('aria-label')).toBeTruthy();
+    }
+  });
+
   test('the footer says the page calls no service', () => {
     expect(document.querySelector('.site-footer')?.textContent).toMatch(
       /never calls a real service/,
