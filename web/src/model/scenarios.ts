@@ -386,7 +386,7 @@ export const SCENARIOS: readonly Scenario[] = [
       {
         clockMs: 500,
         narration:
-          'A third copy arrives after delivery: 200 again, nothing changes. Three requests, one delivery. Two copies at the very same instant are the exception: both miss the lookup and the second one gets 500 (see known limitations).',
+          'A third copy arrives after delivery: 200 again, nothing changes. Three requests, one delivery. Two copies at the very same instant both miss the lookup; the second insert hits the primary key and is answered 200 too.',
         hop: 'intake',
         call: { id: 'm1', status: 200 },
       },

@@ -433,8 +433,7 @@
               <tr>
                 <th scope="row">500</th>
                 <td>
-                  <code class="route">Any request</code> PostgreSQL or Redis fails, or two requests
-                  with the same new <code>id</code> arrive at once (see section 5).
+                  <code class="route">Any request</code> PostgreSQL or Redis fails.
                   <span class="body">Express's default error page</span>
                 </td>
               </tr>
@@ -465,8 +464,8 @@
         <p class="note">
           The look-up and the insert are two separate steps. Two requests with the same new
           <code>id</code> at the same moment can both miss the look-up; the second insert then
-          breaks the primary key and gets <code>500</code>. It is still delivered once. See section
-          5.
+          breaks the primary key (Prisma's <code>P2002</code>), and the gateway answers it
+          <code>200</code> as well. The message is still saved, queued and delivered once.
         </p>
       </section>
 
@@ -493,23 +492,6 @@
               A periodic sweep that queues again every message still PENDING after a minute, using
               the message <code>id</code> as the BullMQ job id so a job that already exists is not
               added twice.
-            </p>
-          </details>
-        </article>
-
-        <article class="limitation">
-          <h3>Two simultaneous duplicates: the second gets <code>500</code></h3>
-          <p>
-            The sender repeats m3 while its first request is still in flight. Both requests look m3
-            up, neither finds it, and both try to insert it. The second insert breaks the primary
-            key and Express answers <code>500</code>. m3 is still saved and queued once, so it is
-            delivered once, but the sender sees an error for a message that was accepted.
-          </p>
-          <details>
-            <summary>How would it be fixed?</summary>
-            <p>
-              Catch Prisma's unique constraint error (<code>P2002</code>) on the insert and answer
-              <code>200</code>, as the look-up already does.
             </p>
           </details>
         </article>
@@ -623,7 +605,8 @@
             scales intake. Each copy also runs a worker, but BullMQ keeps the limiter's counter in
             Redis, so all of them together still send at most 100 per second: Mock C's limit is the
             ceiling. More workers help only when one job takes longer than 10 ms. Simultaneous
-            duplicates (section 5) become more likely.
+            duplicates become more likely, but the primary key still keeps one copy of each
+            <code>id</code>.
           </p>
         </details>
       </section>
