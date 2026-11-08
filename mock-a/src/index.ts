@@ -60,7 +60,9 @@ app.post('/simulate', [
       id: faker.string.uuid(),
       content: 'Test message',
       recipient: '+521234567890'
-    }).finally(() => active--);
+    })
+      .catch((error) => console.error(`Send failed: ${error.message}`))
+      .finally(() => active--);
   }
   console.timeEnd('rafaga');
 });
