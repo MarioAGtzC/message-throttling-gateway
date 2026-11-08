@@ -66,6 +66,30 @@ describe('live demo', () => {
     expect(location.hash).toBe('#attempts=3&messages=50');
   });
 
+  test('treats a link to a section as an anchor, not as demo values', () => {
+    load('#steps');
+    expect(input('messages').value).toBe('100000');
+    expect($('#demo-ignored').hidden).toBe(true);
+    expect(location.hash).toBe('#steps');
+  });
+
+  test('keeps the visitor values when they follow a section link', () => {
+    load('');
+    type('messages', '50');
+    history.replaceState(null, '', '/#main');
+    window.dispatchEvent(new HashChangeEvent('hashchange'));
+    expect(input('messages').value).toBe('50');
+    expect(out('sent')).toBe('50');
+    expect($('#demo-ignored').hidden).toBe(true);
+    expect(location.hash).toBe('#main');
+  });
+
+  test('still reports a bare unknown key that is not a section', () => {
+    load('#nope');
+    expect($('#demo-ignored').hidden).toBe(false);
+    expect(location.hash).toBe('');
+  });
+
   test('updates the card, the badge and the hash on every input', () => {
     load('');
     type('messages', '1000');

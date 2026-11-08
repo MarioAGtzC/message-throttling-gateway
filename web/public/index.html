@@ -196,6 +196,98 @@
 
       <section id="steps" class="wide" aria-labelledby="steps-title">
         <h2 id="steps-title">1. Step by step</h2>
+        <p class="note">
+          Small scripted scenarios. Both limits are scaled down to 3 requests per second so each one
+          fits in a few steps; attempts and backoff are the gateway's.
+        </p>
+        <div class="steps-controls">
+          <div class="field">
+            <label for="steps-scenario">Scenario</label>
+            <select id="steps-scenario"></select>
+          </div>
+          <div class="steps-buttons" role="group" aria-label="Move through the steps">
+            <button id="steps-prev" type="button">Previous</button>
+            <button id="steps-next" type="button">Next</button>
+            <button id="steps-last" type="button">Last</button>
+          </div>
+          <p id="steps-counter" class="mono"></p>
+        </div>
+        <div class="split">
+          <div class="steps-story">
+            <p id="steps-clock" class="mono"></p>
+            <p id="steps-narration"></p>
+            <p id="steps-announce" class="visually-hidden" aria-live="polite"></p>
+            <svg id="steps-diagram" class="diagram" viewBox="0 0 300 354" role="img">
+              <g class="node">
+                <rect x="20" y="4" width="150" height="40" rx="6" />
+                <text class="node-title" x="95" y="29" text-anchor="middle">Mock A</text>
+              </g>
+              <g class="hop" data-hop="intake">
+                <line x1="95" y1="44" x2="95" y2="98" />
+                <polygon points="89,96 101,96 95,106" />
+                <text class="hop-count" x="112" y="79"></text>
+              </g>
+              <g class="node">
+                <rect x="20" y="106" width="150" height="56" rx="6" />
+                <text class="node-title" x="95" y="128" text-anchor="middle">Service B</text>
+                <text class="node-sub" x="95" y="149" text-anchor="middle">PostgreSQL + queue</text>
+              </g>
+              <g class="hop" data-hop="queue">
+                <line x1="95" y1="162" x2="95" y2="208" />
+                <polygon points="89,206 101,206 95,216" />
+                <text class="hop-count" x="112" y="193"></text>
+              </g>
+              <g class="node">
+                <rect x="20" y="216" width="150" height="40" rx="6" />
+                <text class="node-title" x="95" y="241" text-anchor="middle">Worker</text>
+              </g>
+              <g class="hop" data-hop="provider">
+                <line x1="95" y1="256" x2="95" y2="302" />
+                <polygon points="89,300 101,300 95,310" />
+                <text class="hop-count" x="112" y="287"></text>
+              </g>
+              <g class="node">
+                <rect x="20" y="310" width="150" height="40" rx="6" />
+                <text class="node-title" x="95" y="335" text-anchor="middle">Mock C</text>
+              </g>
+            </svg>
+          </div>
+          <section class="card" aria-labelledby="steps-state-title">
+            <h3 id="steps-state-title">State</h3>
+            <dl class="steps-state mono">
+              <div>
+                <dt>Waiting</dt>
+                <dd id="steps-waiting"></dd>
+              </div>
+              <div>
+                <dt>Delayed</dt>
+                <dd id="steps-delayed"></dd>
+              </div>
+              <div>
+                <dt>Worker window</dt>
+                <dd id="steps-worker"></dd>
+              </div>
+              <div>
+                <dt>Provider window</dt>
+                <dd id="steps-provider"></dd>
+              </div>
+            </dl>
+            <table class="mono">
+              <caption class="visually-hidden">
+                Messages in PostgreSQL
+              </caption>
+              <thead>
+                <tr>
+                  <th scope="col">Id</th>
+                  <th scope="col">Status</th>
+                  <th scope="col">Retries</th>
+                  <th scope="col">Attempts</th>
+                </tr>
+              </thead>
+              <tbody id="steps-rows"></tbody>
+            </table>
+          </section>
+        </div>
       </section>
 
       <section id="limits" class="column" aria-labelledby="limits-title">
