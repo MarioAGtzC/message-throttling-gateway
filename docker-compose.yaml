@@ -49,6 +49,7 @@ services:
     volumes:
       - ./service-b:/app
       - /app/node_modules
+      - /app/generated
 
   mock-c:
     build:

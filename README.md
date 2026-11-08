@@ -12,7 +12,7 @@ Technical challenge, built solo: design, implementation, tests and the local env
 
 The system has three services:
 
-- **Service B (the gateway).** `POST /messages` validates the payload, ignores any `id` it has already received, saves the message in PostgreSQL as `PENDING` and adds a job to a BullMQ queue, answering `202 Accepted` without waiting for delivery. A BullMQ worker, capped at 100 jobs per second, marks the message as in progress, forwards it to the provider and marks it `SENT`. A `429` or any other failed send is retried up to 5 attempts with exponential backoff starting at one second; a message that exhausts its attempts ends as `FAILED`. `GET /messages` returns the count per status and `GET /messages/:id` the state of one message.
+- **Service B (the gateway).** `POST /messages` validates the payload, ignores any `id` it has already received, saves the message in PostgreSQL as `PENDING` and adds a job to a BullMQ queue, answering `202 Accepted` without waiting for delivery. A BullMQ worker, capped at 100 jobs per second, marks the message as in progress, forwards it to the provider and marks it `SENT`. A `429` or any other failed send is retried up to 5 attempts with exponential backoff starting at one second; a message that exhausts its attempts ends as `FAILED`. Every minute, a sweep queues again any message still `PENDING` after a minute (for example, after a crash between saving and queuing); each job id is derived from the message `id`, so a message already in the queue is not added twice. `GET /messages` returns the count per status and `GET /messages/:id` the state of one message.
 - **Mock A (the upstream platform).** `POST /simulate?count=N` generates N messages (100,000 by default) with random UUIDs and posts them to the gateway with up to 100 requests in flight.
 - **Mock C (the provider).** Accepts `POST /send-message` and enforces 100 requests per second, answering `429` beyond that.
 
@@ -49,6 +49,8 @@ Requires Docker with Compose.
 
 ```bash
 cp .env.example .env
+# Prisma reads DATABASE_URL when the service-b image is built
+echo "DATABASE_URL=postgresql://postgres:postgres@postgres:5432/messages" > service-b/.env
 docker compose up --build
 
 # Send a burst of 100,000 messages through the gateway
@@ -72,4 +74,6 @@ No screenshots yet. Add them to `docs/screenshots/` and link them here: for exam
 
 ## Links
 
-No live demo or related repositories yet.
+- [Live demo](https://gateway.greenie.dev): a browser simulator of the gateway's throttling, retries and idempotency. It runs entirely in the page and calls no service.
+
+No related repositories.
