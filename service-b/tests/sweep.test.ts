@@ -61,8 +61,9 @@ describe('requeueStalePending', () => {
     (prisma.message.findMany as jest.Mock).mockResolvedValueOnce([m('m1')]).mockResolvedValueOnce([m('m2')]).mockResolvedValueOnce([]);
 
     expect(await requeueStalePending()).toBe(2);
-    expect((prisma.message.findMany as jest.Mock).mock.calls[1][0]).toEqual(
-      expect.objectContaining({ cursor: { id: 'm1' }, skip: 1 }),
+    expect((prisma.message.findMany as jest.Mock).mock.calls[0][0].where.id).toBeUndefined();
+    expect((prisma.message.findMany as jest.Mock).mock.calls[1][0].where).toEqual(
+      expect.objectContaining({ status: 'PENDING', id: { gt: 'm1' } }),
     );
     expect(messageQueue.addBulk).toHaveBeenCalledTimes(2);
   });

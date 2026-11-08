@@ -15,11 +15,14 @@ export const requeueStalePending = async (now = Date.now()) => {
 
   for (;;) {
     const page = await prisma.message.findMany({
-      where: { status: 'PENDING', createdAt: { lt: new Date(now - STALE_AFTER_MS) } },
+      where: {
+        status: 'PENDING',
+        createdAt: { lt: new Date(now - STALE_AFTER_MS) },
+        ...(lastId && { id: { gt: lastId } }),
+      },
       select: { id: true, content: true, recipient: true },
       orderBy: { id: 'asc' },
       take: PAGE_SIZE,
-      ...(lastId && { cursor: { id: lastId }, skip: 1 }),
     });
     if (page.length === 0) return checked;
 
