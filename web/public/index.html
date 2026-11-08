@@ -373,8 +373,8 @@
             <span class="status-retrying">RETRYING</span>.
           </li>
           <li>
-            Any other error answer (a <code>503</code>, for example) adds one to
-            <code>retries</code> and marks the message
+            Any other error answer (a <code>503</code>, for example), a network error, or no answer
+            within 5 s adds one to <code>retries</code> and marks the message
             <span class="status-failed">FAILED</span> until its next attempt sets it back to
             <span class="status-retrying">RETRYING</span>.
           </li>
@@ -472,24 +472,6 @@
       <section id="limitations" class="column" aria-labelledby="limitations-title">
         <h2 id="limitations-title">5. Known limitations</h2>
         <p>These are gaps in the gateway's code today, shown as they are.</p>
-
-        <article class="limitation">
-          <h3>The request to Mock C has no timeout</h3>
-          <p>
-            If Mock C accepts the connection and never answers, Node's <code>fetch</code> waits up
-            to its default of 300 s for the response. With <code>concurrency: 1</code>, nothing else
-            is sent meanwhile, so one stuck request stops delivery for up to five minutes. A network
-            error, such as a refused connection, is retried, but it does not add to
-            <code>retries</code> and the message stays RETRYING until the last attempt.
-          </p>
-          <details>
-            <summary>How would it be fixed?</summary>
-            <p>
-              Pass <code>AbortSignal.timeout(5000)</code> to <code>fetch</code> and treat a timeout
-              or a network error like a <code>5xx</code>: count the retry and set the status.
-            </p>
-          </details>
-        </article>
 
         <article class="limitation">
           <h3>Mock A's <code>/simulate-real</code> sends numeric ids</h3>

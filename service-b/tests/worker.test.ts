@@ -94,7 +94,36 @@ describe('messageWorker - processor', () => {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({ id: 'msg-1', content: 'Hello', recipient: 'user@example.com' }),
+      signal: expect.any(AbortSignal),
     });
+  });
+
+  test('debe tratar un error de red como un 5xx: cuenta el reintento y marca FAILED', async () => {
+    (prisma.message.update as jest.Mock).mockResolvedValue({});
+    global.fetch = jest.fn().mockRejectedValue(new TypeError('fetch failed'));
+
+    await expect(workerProcessor(mockJob)).rejects.toThrow('Error enviando mensaje');
+
+    expect(prisma.message.update).toHaveBeenNthCalledWith(2, {
+      where: { id: 'msg-1' },
+      data: { status: 'FAILED', retries: { increment: 1 } },
+    });
+  });
+
+  test('debe cortar la petición a Mock C a los 5 s y tratarla como un 5xx', async () => {
+    const timeout = jest.spyOn(AbortSignal, 'timeout');
+    (prisma.message.update as jest.Mock).mockResolvedValue({});
+    // What fetch rejects with when the signal from AbortSignal.timeout fires.
+    global.fetch = jest.fn().mockRejectedValue(new DOMException('The operation was aborted due to timeout', 'TimeoutError'));
+
+    await expect(workerProcessor(mockJob)).rejects.toThrow('Error enviando mensaje');
+
+    expect(timeout).toHaveBeenCalledWith(5000);
+    expect(prisma.message.update).toHaveBeenNthCalledWith(2, {
+      where: { id: 'msg-1' },
+      data: { status: 'FAILED', retries: { increment: 1 } },
+    });
+    timeout.mockRestore();
   });
 });
 
