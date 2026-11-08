@@ -361,7 +361,8 @@ button:disabled:hover {
 }
 
 .card table,
-#limits-data table {
+#limits-data table,
+#responses {
   width: 100%;
   border-collapse: collapse;
 }
@@ -369,14 +370,17 @@ button:disabled:hover {
 .card th,
 .card td,
 #limits-data th,
-#limits-data td {
+#limits-data td,
+#responses th,
+#responses td {
   padding: 0.35rem 0.5rem;
   text-align: left;
   border-bottom: 1px solid var(--border);
 }
 
 .card th,
-#limits-data th {
+#limits-data th,
+#responses thead th {
   color: var(--muted);
   font-family: var(--font-sans);
   font-size: 0.875rem;
@@ -446,6 +450,49 @@ button:disabled:hover {
 #limits-data summary {
   cursor: pointer;
   color: var(--link);
+}
+
+/* Retries and responses */
+.backoff {
+  padding-left: 1.5rem;
+}
+
+.backoff li {
+  margin-block: 0.25rem;
+}
+
+/* If the responses table ever gets wider than the column, it scrolls inside its box, never the page. */
+.table-scroll {
+  overflow-x: auto;
+  margin-block: 1.5rem;
+}
+
+#responses th,
+#responses td {
+  vertical-align: top;
+}
+
+#responses caption {
+  text-align: left;
+  font-weight: 600;
+  margin-bottom: 0.5rem;
+}
+
+#responses tbody th {
+  font-family: var(--font-mono);
+}
+
+/* Route, description and body each take their own line. */
+#responses .route {
+  display: block;
+  white-space: nowrap;
+}
+
+#responses .body {
+  display: block;
+  margin-top: 0.25rem;
+  color: var(--muted);
+  overflow-wrap: anywhere;
 }
 
 /* Flow diagram */

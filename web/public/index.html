@@ -353,10 +353,114 @@
 
       <section id="retries" class="column" aria-labelledby="retries-title">
         <h2 id="retries-title">3. Retries and responses</h2>
+        <p>
+          When the request to Mock C does not end in a <code>2xx</code>, the worker throws and
+          BullMQ retries the job with exponential backoff: retry n waits 2<sup>n−1</sup> × the base
+          delay.
+        </p>
+        <ol id="retries-timeline" class="backoff mono"></ol>
+        <p id="retries-summary"></p>
+        <ul>
+          <li>
+            A <code>429</code> adds one to <code>retries</code> and the message stays
+            <span class="status-retrying">RETRYING</span>.
+          </li>
+          <li>
+            Any other error answer (a <code>503</code>, for example) adds one to
+            <code>retries</code> and marks the message
+            <span class="status-failed">FAILED</span> until its next attempt sets it back to
+            <span class="status-retrying">RETRYING</span>.
+          </li>
+          <li>
+            After the last attempt fails, the worker marks the message
+            <span class="status-failed">FAILED</span> for good.
+          </li>
+          <li>
+            A wait is a minimum: when it ends, the job goes back to the end of the waiting list, so
+            under a backlog it runs later than the timeline shows.
+          </li>
+        </ul>
+        <div class="table-scroll">
+          <table id="responses">
+            <caption>
+              Answers of the gateway
+            </caption>
+            <thead>
+              <tr>
+                <th scope="col">Status</th>
+                <th scope="col">Request, when and body</th>
+              </tr>
+            </thead>
+            <tbody>
+              <tr>
+                <th scope="row">202</th>
+                <td>
+                  <code class="route">POST /messages</code> New <code>id</code>: saved as PENDING
+                  and queued.
+                  <code class="body">{"message": "Mensaje recibido"}</code>
+                </td>
+              </tr>
+              <tr>
+                <th scope="row">200</th>
+                <td>
+                  <code class="route">POST /messages</code> <code>id</code> already received:
+                  nothing is saved or queued.
+                  <code class="body">{"message": "Mensaje ya recibido anteriormente"}</code>
+                </td>
+              </tr>
+              <tr>
+                <th scope="row">400</th>
+                <td>
+                  <code class="route">POST /messages</code> <code>id</code>, <code>content</code> or
+                  <code>recipient</code> is missing, empty or not a string.
+                  <span class="body">The express-validator error list</span>
+                </td>
+              </tr>
+              <tr>
+                <th scope="row">404</th>
+                <td>
+                  <code class="route">GET /messages/:id</code> No message has that <code>id</code>.
+                  <code class="body">{"error": "Mensaje no encontrado"}</code>
+                </td>
+              </tr>
+              <tr>
+                <th scope="row">500</th>
+                <td>
+                  <code class="route">Any request</code> PostgreSQL or Redis fails, or two requests
+                  with the same new <code>id</code> arrive at once (see section 5).
+                  <span class="body">Express's default error page</span>
+                </td>
+              </tr>
+            </tbody>
+          </table>
+        </div>
       </section>
 
       <section id="idempotency" class="column" aria-labelledby="idempotency-title">
         <h2 id="idempotency-title">4. Idempotency</h2>
+        <p>
+          Every message carries an <code>id</code> chosen by the sender (Mock A uses a UUID). Before
+          saving, the gateway looks the <code>id</code> up in PostgreSQL, where it is the primary
+          key:
+        </p>
+        <ul>
+          <li>
+            Not found: the message is saved as PENDING, one job is queued, and the answer is
+            <code>202</code>.
+          </li>
+          <li>Found: the answer is <code>200</code> and nothing else happens.</li>
+        </ul>
+        <p>
+          So a sender can safely repeat a request it is unsure about: each <code>id</code> is saved
+          once and queued once, and Mock C gets it once in normal operation. The step-by-step
+          scenario "Duplicate id" walks through it.
+        </p>
+        <p class="note">
+          The look-up and the insert are two separate steps. Two requests with the same new
+          <code>id</code> at the same moment can both miss the look-up; the second insert then
+          breaks the primary key and gets <code>500</code>. It is still delivered once. See section
+          5.
+        </p>
       </section>
 
       <section id="limitations" class="column" aria-labelledby="limitations-title">
