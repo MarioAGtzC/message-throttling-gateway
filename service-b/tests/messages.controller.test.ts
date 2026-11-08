@@ -62,9 +62,37 @@ describe('processMessage', () => {
     await processMessage(req, res);
 
     expect(prisma.message.create).toHaveBeenCalledWith({ data: mockMessage });
-    expect(messageQueue.add).toHaveBeenCalledWith('send', mockMessage);
+    expect(messageQueue.add).toHaveBeenCalledWith('send', mockMessage, { jobId: 'message-msg-1' });
     expect(res.statusCode).toBe(202);
     expect(res._getJSONData()).toEqual({ message: 'Mensaje recibido' });
+  });
+
+  test('debe regresar 200 si un duplicado simultáneo choca con la llave primaria (P2002)', async () => {
+    (prisma.message.findUnique as jest.Mock).mockResolvedValue(null);
+    (prisma.message.create as jest.Mock).mockRejectedValue(
+      Object.assign(new Error('Unique constraint failed on the fields: (`id`)'), { code: 'P2002' })
+    );
+
+    const req = createRequest({ body: mockMessage });
+    const res = createResponse();
+
+    await processMessage(req, res);
+
+    expect(res.statusCode).toBe(200);
+    expect(res._getJSONData()).toEqual({ message: 'Mensaje ya recibido anteriormente' });
+    expect(messageQueue.add).not.toHaveBeenCalled();
+  });
+
+  test('debe propagar cualquier otro error al guardar', async () => {
+    (prisma.message.findUnique as jest.Mock).mockResolvedValue(null);
+    const dbDown = Object.assign(new Error('Can\'t reach database server'), { code: 'P1001' });
+    (prisma.message.create as jest.Mock).mockRejectedValue(dbDown);
+
+    const req = createRequest({ body: mockMessage });
+    const res = createResponse();
+
+    await expect(processMessage(req, res)).rejects.toBe(dbDown);
+    expect(messageQueue.add).not.toHaveBeenCalled();
   });
 });
 

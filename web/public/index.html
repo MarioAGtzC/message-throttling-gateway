@@ -356,6 +356,15 @@
         <p class="note">
           The live demo assumes each job takes under 10 ms, so the limit is the only bottleneck.
         </p>
+        <p class="note measured">
+          Measured on Docker, 8 November 2026 (Docker Desktop on Windows, 8 CPUs,
+          <code>docker compose</code> with the default settings): 10,000 messages from Mock A took
+          135 s from the first request to the last SENT, about 74 per second, where the live demo
+          gives 1m 40s. All 10,000 were SENT and none FAILED; 158 of them were retried after a
+          <code>429</code> at a window edge, 165 retries in all. At 74 per second one job took about
+          13.5 ms on average, retries included, so here the time per job, not the limit, set the
+          rate.
+        </p>
       </section>
 
       <section id="retries" class="column" aria-labelledby="retries-title">
@@ -373,8 +382,8 @@
             <span class="status-retrying">RETRYING</span>.
           </li>
           <li>
-            Any other error answer (a <code>503</code>, for example) adds one to
-            <code>retries</code> and marks the message
+            Any other error answer (a <code>503</code>, for example), a network error, or no answer
+            within 5 s adds one to <code>retries</code> and marks the message
             <span class="status-failed">FAILED</span> until its next attempt sets it back to
             <span class="status-retrying">RETRYING</span>.
           </li>
@@ -433,8 +442,7 @@
               <tr>
                 <th scope="row">500</th>
                 <td>
-                  <code class="route">Any request</code> PostgreSQL or Redis fails, or two requests
-                  with the same new <code>id</code> arrive at once (see section 5).
+                  <code class="route">Any request</code> PostgreSQL or Redis fails.
                   <span class="body">Express's default error page</span>
                 </td>
               </tr>
@@ -465,89 +473,14 @@
         <p class="note">
           The look-up and the insert are two separate steps. Two requests with the same new
           <code>id</code> at the same moment can both miss the look-up; the second insert then
-          breaks the primary key and gets <code>500</code>. It is still delivered once. See section
-          5.
+          breaks the primary key (Prisma's <code>P2002</code>), and the gateway answers it
+          <code>200</code> as well. The message is still saved, queued and delivered once.
         </p>
       </section>
 
       <section id="limitations" class="column" aria-labelledby="limitations-title">
         <h2 id="limitations-title">5. Known limitations</h2>
-        <p>
-          These are gaps in the gateway's code today. The page shows them as they are; none is fixed
-          yet.
-        </p>
-
-        <article class="limitation">
-          <h3>A restart or a Redis error can leave a message PENDING forever</h3>
-          <p>
-            Saving the message and queuing its job are two separate writes. If the gateway stops
-            right after saving m7, or Redis refuses the job and the gateway answers
-            <code>500</code>, PostgreSQL says PENDING but Redis has no job for it, and nothing looks
-            for it again. If the sender repeats m7, the gateway finds the <code>id</code> and
-            answers <code>200</code>, so even a retry does not help. The step-by-step scenario
-            "Restart with a message stuck in PENDING" walks through it.
-          </p>
-          <details>
-            <summary>How would it be fixed?</summary>
-            <p>
-              A periodic sweep that queues again every message still PENDING after a minute, using
-              the message <code>id</code> as the BullMQ job id so a job that already exists is not
-              added twice.
-            </p>
-          </details>
-        </article>
-
-        <article class="limitation">
-          <h3>Two simultaneous duplicates: the second gets <code>500</code></h3>
-          <p>
-            The sender repeats m3 while its first request is still in flight. Both requests look m3
-            up, neither finds it, and both try to insert it. The second insert breaks the primary
-            key and Express answers <code>500</code>. m3 is still saved and queued once, so it is
-            delivered once, but the sender sees an error for a message that was accepted.
-          </p>
-          <details>
-            <summary>How would it be fixed?</summary>
-            <p>
-              Catch Prisma's unique constraint error (<code>P2002</code>) on the insert and answer
-              <code>200</code>, as the look-up already does.
-            </p>
-          </details>
-        </article>
-
-        <article class="limitation">
-          <h3>The request to Mock C has no timeout</h3>
-          <p>
-            If Mock C accepts the connection and never answers, Node's <code>fetch</code> waits up
-            to its default of 300 s for the response. With <code>concurrency: 1</code>, nothing else
-            is sent meanwhile, so one stuck request stops delivery for up to five minutes. A network
-            error, such as a refused connection, is retried, but it does not add to
-            <code>retries</code> and the message stays RETRYING until the last attempt.
-          </p>
-          <details>
-            <summary>How would it be fixed?</summary>
-            <p>
-              Pass <code>AbortSignal.timeout(5000)</code> to <code>fetch</code> and treat a timeout
-              or a network error like a <code>5xx</code>: count the retry and set the status.
-            </p>
-          </details>
-        </article>
-
-        <article class="limitation">
-          <h3>Mock A's <code>/simulate-real</code> sends numeric ids</h3>
-          <p>
-            <code>POST /simulate-real</code> sends <code>id: 0, 1, 2…</code> as numbers. The gateway
-            requires a string <code>id</code>, so every one of those messages gets
-            <code>400</code> and none is saved. <code>POST /simulate</code>, used everywhere on this
-            page, sends UUID strings and works.
-          </p>
-          <details>
-            <summary>How would it be fixed?</summary>
-            <p>
-              Send <code>String(i)</code> as the <code>id</code>, or remove the endpoint and keep
-              <code>/simulate</code>.
-            </p>
-          </details>
-        </article>
+        <p>This is the gap left in the gateway's code today, shown as it is.</p>
 
         <article class="limitation">
           <h3>A message can reach Mock C twice</h3>
@@ -578,7 +511,11 @@
             and <code>GET /messages/:id</code> can report it, whatever happens to the queue. Redis
             runs with <code>appendonly yes</code>, so queued jobs survive a Redis restart too,
             except for up to about a second of writes if Redis crashes (it syncs its log once per
-            second by default). The cost is the gap between the two writes (section 5).
+            second by default). The cost is the gap between the two writes: a crash or a Redis error
+            there leaves a row PENDING with no job. A sweep every minute queues again any message
+            PENDING for over a minute, under a job id derived from the message <code>id</code>, so a
+            message whose job is still waiting is not queued twice. The step-by-step scenario
+            "Restart between saving and queuing" walks through it.
           </p>
         </details>
         <details>
@@ -623,7 +560,8 @@
             scales intake. Each copy also runs a worker, but BullMQ keeps the limiter's counter in
             Redis, so all of them together still send at most 100 per second: Mock C's limit is the
             ceiling. More workers help only when one job takes longer than 10 ms. Simultaneous
-            duplicates (section 5) become more likely.
+            duplicates become more likely, but the primary key still keeps one copy of each
+            <code>id</code>.
           </p>
         </details>
       </section>
@@ -641,6 +579,8 @@
             role="region"
             aria-label="Commands to run the gateway"
           ><code>cp .env.example .env
+# Prisma reads DATABASE_URL when the service-b image is built
+echo "DATABASE_URL=postgresql://postgres:postgres@postgres:5432/messages" &gt; service-b/.env
 docker compose up --build
 
 # Send a burst of 100,000 messages through the gateway

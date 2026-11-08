@@ -1,6 +1,7 @@
 import { Request, Response } from 'express';
 import { prisma } from '../config/prisma';
 import { messageQueue } from '../config/queue';
+import { jobIdFor } from '../config/jobId';
 
 export const processMessage = async (req: Request, res: Response) => {
   const { id, content, recipient } = req.body;
@@ -10,11 +11,19 @@ export const processMessage = async (req: Request, res: Response) => {
     return res.status(200).json({ message: 'Mensaje ya recibido anteriormente' });
   }
 
-  await prisma.message.create({
-    data: { id, content, recipient }
-  });
+  try {
+    await prisma.message.create({
+      data: { id, content, recipient }
+    });
+  } catch (error) {
+    // P2002: a simultaneous request with the same id was saved first, so this one is a duplicate.
+    if ((error as { code?: unknown })?.code === 'P2002') {
+      return res.status(200).json({ message: 'Mensaje ya recibido anteriormente' });
+    }
+    throw error;
+  }
 
-  await messageQueue.add('send', { id, content, recipient });
+  await messageQueue.add('send', { id, content, recipient }, { jobId: jobIdFor(id) });
 
   return res.status(202).json({ message: 'Mensaje recibido' });
 }

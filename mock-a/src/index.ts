@@ -28,15 +28,12 @@ app.post('/simulate-real', [
 
   console.time('rafaga');
   for (let i = 0; i < count; i++) {
-    fetch(`${SERVICE_B_URL}/messages`, {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({
-        id: i,
-        content: 'Test message',
-        recipient: '+521234567890'
-      })
-    });
+    // No cap on requests in flight, unlike /simulate; a failed send is logged, not fatal.
+    sendMessage({
+      id: faker.string.uuid(),
+      content: 'Test message',
+      recipient: '+521234567890'
+    }).catch((error) => console.error(`Send failed: ${error.message}`));
     await new Promise(resolve => setTimeout(resolve, 0));
   }
   console.timeEnd('rafaga');
@@ -63,7 +60,9 @@ app.post('/simulate', [
       id: faker.string.uuid(),
       content: 'Test message',
       recipient: '+521234567890'
-    }).finally(() => active--);
+    })
+      .catch((error) => console.error(`Send failed: ${error.message}`))
+      .finally(() => active--);
   }
   console.timeEnd('rafaga');
 });

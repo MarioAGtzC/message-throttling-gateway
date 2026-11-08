@@ -35,13 +35,21 @@ beforeEach(() => {
 });
 
 describe('explanatory sections', () => {
-  test('known limitations list the five gateway findings, each with its fix', () => {
+  test('known limitations list the remaining gateway finding, each with its fix', () => {
     const titles = [...document.querySelectorAll('#limitations h3')].map((h) => h.textContent);
-    expect(titles).toHaveLength(5);
+    expect(titles).toHaveLength(1);
     const fixes = sectionDetails('limitations');
-    expect(fixes).toHaveLength(5);
+    expect(fixes).toHaveLength(1);
     for (const fix of fixes)
       expect(fix.querySelector('summary')?.textContent).toBe('How would it be fixed?');
+  });
+
+  test('section 2 quotes one dated Docker measurement', () => {
+    const notes = [...document.querySelectorAll('#limits .measured')];
+    expect(notes).toHaveLength(1);
+    const text = notes[0]?.textContent?.replace(/\s+/g, ' ') ?? '';
+    expect(text).toContain('Measured on Docker, 8 November 2026');
+    expect(text).toContain('10,000 messages');
   });
 
   test('design decisions are questions with an answer', () => {
