@@ -292,6 +292,63 @@
 
       <section id="limits" class="column" aria-labelledby="limits-title">
         <h2 id="limits-title">2. Two limits, one rate</h2>
+        <p>
+          There are two limits on the way out. The worker's BullMQ limiter takes at most 100 jobs
+          per 1000 ms, and Mock C's express-rate-limit accepts 100 requests per 1000 ms and answers
+          <code>429</code> beyond. Both are fixed windows, but they do not open at the same moment:
+          the worker's window opens with its first job, and Mock C's with the first request it gets
+          after its previous window ended. Rejected requests count in Mock C's window too.
+        </p>
+        <p>
+          The chart shows three seconds of a backlog with both limits scaled down to 3 per second.
+          Each job takes about 250 ms, and the time a request needs to reach Mock C varies. When a
+          request arrives sooner than the one that opened Mock C's window, it lands in a window that
+          is already full and gets <code>429</code>, even though the worker kept its limit.
+        </p>
+        <figure class="timeline">
+          <svg id="limits-chart" class="chart" viewBox="0 0 340 150" role="img"></svg>
+          <figcaption class="note">
+            Green marks were answered <code>200</code>, amber marks <code>429</code> (the message is
+            retried after the backoff).
+          </figcaption>
+        </figure>
+        <details id="limits-data">
+          <summary>Show data</summary>
+          <table class="mono">
+            <caption class="visually-hidden">
+              Requests in the timeline
+            </caption>
+            <thead>
+              <tr>
+                <th scope="col">At Mock C</th>
+                <th scope="col">Message</th>
+                <th scope="col">Worker window</th>
+                <th scope="col">Mock C window (count)</th>
+                <th scope="col">Answer</th>
+              </tr>
+            </thead>
+            <tbody id="limits-rows"></tbody>
+          </table>
+        </details>
+        <h3>One job at a time</h3>
+        <p>
+          The worker runs with BullMQ's default <code>concurrency: 1</code>: it takes the next job
+          only when the previous one has finished its two database updates and its request to Mock
+          C. So the real rate is <code>min(limit, 1 / time per job)</code>.
+        </p>
+        <ul>
+          <li>
+            At 5 ms per job: min(100/s, 200/s) = 100/s, and the default burst of 100,000 messages
+            takes 16m 40s.
+          </li>
+          <li>
+            At 20 ms per job: min(100/s, 50/s) = 50/s, and the same burst takes 33m 20s, twice as
+            long.
+          </li>
+        </ul>
+        <p class="note">
+          The live demo assumes each job takes under 10 ms, so the limit is the only bottleneck.
+        </p>
       </section>
 
       <section id="retries" class="column" aria-labelledby="retries-title">

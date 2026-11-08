@@ -360,23 +360,92 @@ button:disabled:hover {
   margin: 0;
 }
 
-.card table {
+.card table,
+#limits-data table {
   width: 100%;
   border-collapse: collapse;
 }
 
 .card th,
-.card td {
+.card td,
+#limits-data th,
+#limits-data td {
   padding: 0.35rem 0.5rem;
   text-align: left;
   border-bottom: 1px solid var(--border);
 }
 
-.card th {
+.card th,
+#limits-data th {
   color: var(--muted);
   font-family: var(--font-sans);
   font-size: 0.875rem;
   font-weight: 600;
+}
+
+/* Two limits timeline */
+.timeline {
+  margin: 1.5rem 0 0.5rem;
+}
+
+.chart {
+  width: 100%;
+  max-width: 40rem;
+  height: auto;
+}
+
+.chart text {
+  fill: var(--muted);
+  font-family: var(--font-sans);
+  font-size: 11px;
+}
+
+.chart .window {
+  fill: var(--surface);
+  stroke: var(--border);
+  stroke-width: 1.5;
+}
+
+.chart .axis line {
+  stroke: var(--border);
+}
+
+.chart .axis text,
+.chart .send-label {
+  text-anchor: middle;
+  font-family: var(--font-mono);
+}
+
+.chart .send {
+  fill: none;
+  stroke-width: 2;
+}
+
+.chart .send-200 {
+  stroke: var(--status-sent);
+}
+
+.chart .send-429 {
+  stroke: var(--status-retrying);
+  stroke-dasharray: 4 3;
+}
+
+.chart .send-label {
+  fill: var(--status-retrying);
+}
+
+/* Five columns do not fit at 360 px; the table scrolls inside its box, never the page. */
+#limits-data {
+  overflow-x: auto;
+}
+
+#limits-data td {
+  white-space: nowrap;
+}
+
+#limits-data summary {
+  cursor: pointer;
+  color: var(--link);
 }
 
 /* Flow diagram */
