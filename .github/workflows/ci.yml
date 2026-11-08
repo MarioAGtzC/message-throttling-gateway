@@ -52,7 +52,7 @@ jobs:
 
   deploy:
     name: deploy to GitHub Pages
-    needs: web
+    needs: [service-b, web]
     if: github.event_name == 'push' && github.ref == 'refs/heads/main'
     runs-on: ubuntu-latest
     permissions:
