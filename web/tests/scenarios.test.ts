@@ -139,10 +139,20 @@ describe('SCENARIOS', () => {
     expect(deliveries).toHaveLength(1);
   });
 
-  test('restart: the queued message is sent after the restart and the unqueued one stays PENDING', () => {
-    const last = lastStep(byId('restart').steps);
+  test('restart: the queued message is sent after the restart and the sweep re-queues the unqueued one', () => {
+    const scenario = byId('restart');
+    const last = lastStep(scenario.steps);
     expect(last.rows.m2?.status).toBe('SENT');
-    expect(last.rows.m3?.status).toBe('PENDING');
-    expect(last.waiting).not.toContain('m3');
+    expect(last.rows.m3?.status).toBe('SENT');
+
+    const requeued = scenario.steps.find((step) => step.waiting.includes('m3'));
+    const savedAt = scenario.steps.find((step) => step.rows.m3)?.clockMs ?? 0;
+    // The sweep only picks up messages PENDING for over a minute.
+    expect(requeued?.clockMs).toBeGreaterThan(savedAt + 60_000);
+
+    const deliveries = scenario.steps.filter(
+      (step) => step.call?.id === 'm3' && step.call.status === 200 && step.hop === 'provider',
+    );
+    expect(deliveries).toHaveLength(1);
   });
 });

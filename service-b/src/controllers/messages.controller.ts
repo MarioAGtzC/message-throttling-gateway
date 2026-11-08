@@ -1,6 +1,7 @@
 import { Request, Response } from 'express';
 import { prisma } from '../config/prisma';
 import { messageQueue } from '../config/queue';
+import { jobIdFor } from '../config/jobId';
 
 export const processMessage = async (req: Request, res: Response) => {
   const { id, content, recipient } = req.body;
@@ -22,7 +23,7 @@ export const processMessage = async (req: Request, res: Response) => {
     throw error;
   }
 
-  await messageQueue.add('send', { id, content, recipient });
+  await messageQueue.add('send', { id, content, recipient }, { jobId: jobIdFor(id) });
 
   return res.status(202).json({ message: 'Mensaje recibido' });
 }

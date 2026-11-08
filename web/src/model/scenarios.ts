@@ -394,7 +394,7 @@ export const SCENARIOS: readonly Scenario[] = [
   },
   {
     id: 'restart',
-    title: 'Restart with a message stuck in PENDING',
+    title: 'Restart between saving and queuing',
     limit: LIMIT,
     steps: steps([
       {
@@ -451,9 +451,33 @@ export const SCENARIOS: readonly Scenario[] = [
       {
         clockMs: 3500,
         narration:
-          'Mock A sends m3 again. Service B finds the row and answers 200 "already received" without queuing it. m3 has no job and nothing re-queues it: it stays PENDING forever (see known limitations).',
+          'Mock A sends m3 again. Service B finds the row and answers 200 "already received" without queuing it. m3 is PENDING with no job behind it.',
         hop: 'intake',
         call: { id: 'm3', status: 200 },
+      },
+      {
+        clockMs: 63000,
+        narration:
+          'A minute after the restart the pending sweep runs. m3 has been PENDING for over a minute, so it queues m3 under its own job id (a message whose job is still waiting would be skipped).',
+        hop: 'queue',
+        waiting: ['m3'],
+      },
+      {
+        clockMs: 63000,
+        narration: 'The worker takes m3 and marks it RETRYING.',
+        hop: 'queue',
+        waiting: [],
+        workerWindow: 1,
+        providerWindow: 0,
+        rows: { m3: { status: 'RETRYING', attempts: 1 } },
+      },
+      {
+        clockMs: 63000,
+        narration: 'Mock C answers 200 and m3 is SENT, once.',
+        hop: 'provider',
+        call: { id: 'm3', status: 200 },
+        providerWindow: 1,
+        rows: { m3: { status: 'SENT' } },
       },
     ]),
   },

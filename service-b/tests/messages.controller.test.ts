@@ -62,7 +62,7 @@ describe('processMessage', () => {
     await processMessage(req, res);
 
     expect(prisma.message.create).toHaveBeenCalledWith({ data: mockMessage });
-    expect(messageQueue.add).toHaveBeenCalledWith('send', mockMessage);
+    expect(messageQueue.add).toHaveBeenCalledWith('send', mockMessage, { jobId: 'message-msg-1' });
     expect(res.statusCode).toBe(202);
     expect(res._getJSONData()).toEqual({ message: 'Mensaje recibido' });
   });

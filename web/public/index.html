@@ -471,30 +471,7 @@
 
       <section id="limitations" class="column" aria-labelledby="limitations-title">
         <h2 id="limitations-title">5. Known limitations</h2>
-        <p>
-          These are gaps in the gateway's code today. The page shows them as they are; none is fixed
-          yet.
-        </p>
-
-        <article class="limitation">
-          <h3>A restart or a Redis error can leave a message PENDING forever</h3>
-          <p>
-            Saving the message and queuing its job are two separate writes. If the gateway stops
-            right after saving m7, or Redis refuses the job and the gateway answers
-            <code>500</code>, PostgreSQL says PENDING but Redis has no job for it, and nothing looks
-            for it again. If the sender repeats m7, the gateway finds the <code>id</code> and
-            answers <code>200</code>, so even a retry does not help. The step-by-step scenario
-            "Restart with a message stuck in PENDING" walks through it.
-          </p>
-          <details>
-            <summary>How would it be fixed?</summary>
-            <p>
-              A periodic sweep that queues again every message still PENDING after a minute, using
-              the message <code>id</code> as the BullMQ job id so a job that already exists is not
-              added twice.
-            </p>
-          </details>
-        </article>
+        <p>These are gaps in the gateway's code today, shown as they are.</p>
 
         <article class="limitation">
           <h3>The request to Mock C has no timeout</h3>
@@ -560,7 +537,11 @@
             and <code>GET /messages/:id</code> can report it, whatever happens to the queue. Redis
             runs with <code>appendonly yes</code>, so queued jobs survive a Redis restart too,
             except for up to about a second of writes if Redis crashes (it syncs its log once per
-            second by default). The cost is the gap between the two writes (section 5).
+            second by default). The cost is the gap between the two writes: a crash or a Redis error
+            there leaves a row PENDING with no job. A sweep every minute queues again any message
+            PENDING for over a minute, under a job id derived from the message <code>id</code>, so a
+            message whose job is still waiting is not queued twice. The step-by-step scenario
+            "Restart between saving and queuing" walks through it.
           </p>
         </details>
         <details>
