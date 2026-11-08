@@ -292,26 +292,371 @@
 
       <section id="limits" class="column" aria-labelledby="limits-title">
         <h2 id="limits-title">2. Two limits, one rate</h2>
+        <p>
+          There are two limits on the way out. The worker's BullMQ limiter takes at most 100 jobs
+          per 1000 ms, and Mock C's express-rate-limit accepts 100 requests per 1000 ms and answers
+          <code>429</code> beyond. Both are fixed windows, but they do not open at the same moment:
+          the worker's window opens with its first job, and Mock C's with the first request it gets
+          after its previous window ended. Rejected requests count in Mock C's window too.
+        </p>
+        <p>
+          The chart shows three seconds of a backlog with both limits scaled down to 3 per second.
+          Each job takes about 250 ms, and the time a request needs to reach Mock C varies. When a
+          request arrives sooner than the one that opened Mock C's window, it lands in a window that
+          is already full and gets <code>429</code>, even though the worker kept its limit.
+        </p>
+        <figure class="timeline">
+          <svg id="limits-chart" class="chart" viewBox="0 0 340 150" role="img"></svg>
+          <figcaption class="note">
+            Green marks were answered <code>200</code>, amber marks <code>429</code> (the message is
+            retried after the backoff).
+          </figcaption>
+        </figure>
+        <details id="limits-data">
+          <summary>Show data</summary>
+          <div
+            class="table-scroll"
+            tabindex="0"
+            role="region"
+            aria-label="Requests in the timeline"
+          >
+            <table class="mono">
+              <caption class="visually-hidden">
+                Requests in the timeline
+              </caption>
+              <thead>
+                <tr>
+                  <th scope="col">At Mock C</th>
+                  <th scope="col">Message</th>
+                  <th scope="col">Worker window</th>
+                  <th scope="col">Mock C window (count)</th>
+                  <th scope="col">Answer</th>
+                </tr>
+              </thead>
+              <tbody id="limits-rows"></tbody>
+            </table>
+          </div>
+        </details>
+        <h3>One job at a time</h3>
+        <p>
+          The worker runs with BullMQ's default <code>concurrency: 1</code>: it takes the next job
+          only when the previous one has finished its two database updates and its request to Mock
+          C. So the real rate is <code>min(limit, 1 / time per job)</code>.
+        </p>
+        <ul>
+          <li>
+            At 5 ms per job: min(100/s, 200/s) = 100/s, and the default burst of 100,000 messages
+            takes 16m 40s.
+          </li>
+          <li>
+            At 20 ms per job: min(100/s, 50/s) = 50/s, and the same burst takes 33m 20s, twice as
+            long.
+          </li>
+        </ul>
+        <p class="note">
+          The live demo assumes each job takes under 10 ms, so the limit is the only bottleneck.
+        </p>
       </section>
 
       <section id="retries" class="column" aria-labelledby="retries-title">
         <h2 id="retries-title">3. Retries and responses</h2>
+        <p>
+          When the request to Mock C does not end in a <code>2xx</code>, the worker throws and
+          BullMQ retries the job with exponential backoff: retry n waits 2<sup>n−1</sup> × the base
+          delay.
+        </p>
+        <ol id="retries-timeline" class="backoff mono"></ol>
+        <p id="retries-summary"></p>
+        <ul>
+          <li>
+            A <code>429</code> adds one to <code>retries</code> and the message stays
+            <span class="status-retrying">RETRYING</span>.
+          </li>
+          <li>
+            Any other error answer (a <code>503</code>, for example) adds one to
+            <code>retries</code> and marks the message
+            <span class="status-failed">FAILED</span> until its next attempt sets it back to
+            <span class="status-retrying">RETRYING</span>.
+          </li>
+          <li>
+            After the last attempt fails, the worker marks the message
+            <span class="status-failed">FAILED</span> for good.
+          </li>
+          <li>
+            A wait is a minimum: when it ends, the job goes back to the end of the waiting list, so
+            under a backlog it runs later than the timeline shows.
+          </li>
+        </ul>
+        <div class="table-scroll" tabindex="0" role="region" aria-label="Answers of the gateway">
+          <table id="responses">
+            <caption>
+              Answers of the gateway
+            </caption>
+            <thead>
+              <tr>
+                <th scope="col">Status</th>
+                <th scope="col">Request, when and body</th>
+              </tr>
+            </thead>
+            <tbody>
+              <tr>
+                <th scope="row">202</th>
+                <td>
+                  <code class="route">POST /messages</code> New <code>id</code>: saved as PENDING
+                  and queued.
+                  <code class="body">{"message": "Mensaje recibido"}</code>
+                </td>
+              </tr>
+              <tr>
+                <th scope="row">200</th>
+                <td>
+                  <code class="route">POST /messages</code> <code>id</code> already received:
+                  nothing is saved or queued.
+                  <code class="body">{"message": "Mensaje ya recibido anteriormente"}</code>
+                </td>
+              </tr>
+              <tr>
+                <th scope="row">400</th>
+                <td>
+                  <code class="route">POST /messages</code> <code>id</code>, <code>content</code> or
+                  <code>recipient</code> is missing, empty or not a string.
+                  <span class="body">The express-validator error list</span>
+                </td>
+              </tr>
+              <tr>
+                <th scope="row">404</th>
+                <td>
+                  <code class="route">GET /messages/:id</code> No message has that <code>id</code>.
+                  <code class="body">{"error": "Mensaje no encontrado"}</code>
+                </td>
+              </tr>
+              <tr>
+                <th scope="row">500</th>
+                <td>
+                  <code class="route">Any request</code> PostgreSQL or Redis fails, or two requests
+                  with the same new <code>id</code> arrive at once (see section 5).
+                  <span class="body">Express's default error page</span>
+                </td>
+              </tr>
+            </tbody>
+          </table>
+        </div>
       </section>
 
       <section id="idempotency" class="column" aria-labelledby="idempotency-title">
         <h2 id="idempotency-title">4. Idempotency</h2>
+        <p>
+          Every message carries an <code>id</code> chosen by the sender (Mock A uses a UUID). Before
+          saving, the gateway looks the <code>id</code> up in PostgreSQL, where it is the primary
+          key:
+        </p>
+        <ul>
+          <li>
+            Not found: the message is saved as PENDING, one job is queued, and the answer is
+            <code>202</code>.
+          </li>
+          <li>Found: the answer is <code>200</code> and nothing else happens.</li>
+        </ul>
+        <p>
+          So a sender can safely repeat a request it is unsure about: each <code>id</code> is saved
+          once and queued once, and Mock C gets it once in normal operation. The step-by-step
+          scenario "Duplicate id" walks through it.
+        </p>
+        <p class="note">
+          The look-up and the insert are two separate steps. Two requests with the same new
+          <code>id</code> at the same moment can both miss the look-up; the second insert then
+          breaks the primary key and gets <code>500</code>. It is still delivered once. See section
+          5.
+        </p>
       </section>
 
       <section id="limitations" class="column" aria-labelledby="limitations-title">
         <h2 id="limitations-title">5. Known limitations</h2>
+        <p>
+          These are gaps in the gateway's code today. The page shows them as they are; none is fixed
+          yet.
+        </p>
+
+        <article class="limitation">
+          <h3>A restart or a Redis error can leave a message PENDING forever</h3>
+          <p>
+            Saving the message and queuing its job are two separate writes. If the gateway stops
+            right after saving m7, or Redis refuses the job and the gateway answers
+            <code>500</code>, PostgreSQL says PENDING but Redis has no job for it, and nothing looks
+            for it again. If the sender repeats m7, the gateway finds the <code>id</code> and
+            answers <code>200</code>, so even a retry does not help. The step-by-step scenario
+            "Restart with a message stuck in PENDING" walks through it.
+          </p>
+          <details>
+            <summary>How would it be fixed?</summary>
+            <p>
+              A periodic sweep that queues again every message still PENDING after a minute, using
+              the message <code>id</code> as the BullMQ job id so a job that already exists is not
+              added twice.
+            </p>
+          </details>
+        </article>
+
+        <article class="limitation">
+          <h3>Two simultaneous duplicates: the second gets <code>500</code></h3>
+          <p>
+            The sender repeats m3 while its first request is still in flight. Both requests look m3
+            up, neither finds it, and both try to insert it. The second insert breaks the primary
+            key and Express answers <code>500</code>. m3 is still saved and queued once, so it is
+            delivered once, but the sender sees an error for a message that was accepted.
+          </p>
+          <details>
+            <summary>How would it be fixed?</summary>
+            <p>
+              Catch Prisma's unique constraint error (<code>P2002</code>) on the insert and answer
+              <code>200</code>, as the look-up already does.
+            </p>
+          </details>
+        </article>
+
+        <article class="limitation">
+          <h3>The request to Mock C has no timeout</h3>
+          <p>
+            If Mock C accepts the connection and never answers, Node's <code>fetch</code> waits up
+            to its default of 300 s for the response. With <code>concurrency: 1</code>, nothing else
+            is sent meanwhile, so one stuck request stops delivery for up to five minutes. A network
+            error, such as a refused connection, is retried, but it does not add to
+            <code>retries</code> and the message stays RETRYING until the last attempt.
+          </p>
+          <details>
+            <summary>How would it be fixed?</summary>
+            <p>
+              Pass <code>AbortSignal.timeout(5000)</code> to <code>fetch</code> and treat a timeout
+              or a network error like a <code>5xx</code>: count the retry and set the status.
+            </p>
+          </details>
+        </article>
+
+        <article class="limitation">
+          <h3>Mock A's <code>/simulate-real</code> sends numeric ids</h3>
+          <p>
+            <code>POST /simulate-real</code> sends <code>id: 0, 1, 2…</code> as numbers. The gateway
+            requires a string <code>id</code>, so every one of those messages gets
+            <code>400</code> and none is saved. <code>POST /simulate</code>, used everywhere on this
+            page, sends UUID strings and works.
+          </p>
+          <details>
+            <summary>How would it be fixed?</summary>
+            <p>
+              Send <code>String(i)</code> as the <code>id</code>, or remove the endpoint and keep
+              <code>/simulate</code>.
+            </p>
+          </details>
+        </article>
+
+        <article class="limitation">
+          <h3>A message can reach Mock C twice</h3>
+          <p>
+            Intake is idempotent; delivery is not. The worker sends the request and only then marks
+            the message SENT. If Mock C answers <code>200</code> for m1 and the update to SENT then
+            fails, because PostgreSQL is briefly down or the worker process dies, BullMQ runs the
+            job again and Mock C gets m1 a second time. Delivery is at least once, not exactly once.
+          </p>
+          <details>
+            <summary>How would it be fixed?</summary>
+            <p>
+              The gateway cannot close this alone: there is always a moment between "sent" and
+              "recorded". The usual fix is on the provider side: send the <code>id</code> as an
+              idempotency key and let the provider ignore an <code>id</code> it already delivered.
+              Checking for SENT before sending makes it rarer but does not remove it.
+            </p>
+          </details>
+        </article>
       </section>
 
       <section id="decisions" class="column" aria-labelledby="decisions-title">
         <h2 id="decisions-title">6. Design decisions</h2>
+        <details>
+          <summary>Why store the message before queuing it?</summary>
+          <p>
+            PostgreSQL is the record. Once the gateway answers <code>202</code>, the message exists
+            and <code>GET /messages/:id</code> can report it, whatever happens to the queue. Redis
+            runs with <code>appendonly yes</code>, so queued jobs survive a Redis restart too,
+            except for up to about a second of writes if Redis crashes (it syncs its log once per
+            second by default). The cost is the gap between the two writes (section 5).
+          </p>
+        </details>
+        <details>
+          <summary>Why throttle at the worker instead of letting Mock C reject?</summary>
+          <p>
+            Sending at Mock C's rate keeps <code>429</code>s rare. Every <code>429</code> uses a
+            worker slot, adds a retry and makes the message wait at least a second. Set the worker
+            limit above the provider's in the live demo to see the estimated cost.
+          </p>
+        </details>
+        <details>
+          <summary>Why BullMQ?</summary>
+          <p>
+            It gives the gateway what it needs on top of Redis: a rate limiter, attempts with
+            exponential backoff, delayed jobs, and jobs that survive a restart. Its limiter is
+            global for the queue, so every worker shares the same 100 per second. A queue in memory
+            would lose the backlog on a crash.
+          </p>
+        </details>
+        <details>
+          <summary>Why exponential backoff and 5 attempts?</summary>
+          <p>
+            A <code>429</code> clears when Mock C's window ends, within a second, so the first wait
+            of 1 s is usually enough. A longer outage gets 1 + 2 + 4 + 8 = 15 s before the message
+            is FAILED, with the retries spread out instead of hammering the provider. An outage
+            longer than that leaves messages FAILED, and nothing sends them again.
+          </p>
+        </details>
+        <details>
+          <summary>Is delivery in FIFO order?</summary>
+          <p>
+            Yes, except for retries. With <code>concurrency: 1</code> the worker takes jobs in the
+            order they arrived. A retried job waits in the delayed list and then goes back to the
+            end of the waiting list, so it is delivered after messages that arrived later. The
+            step-by-step scenarios show both cases.
+          </p>
+        </details>
+        <details>
+          <summary>How would it scale to several instances?</summary>
+          <p>
+            Several copies of Service B can share PostgreSQL and Redis behind a load balancer, which
+            scales intake. Each copy also runs a worker, but BullMQ keeps the limiter's counter in
+            Redis, so all of them together still send at most 100 per second: Mock C's limit is the
+            ceiling. More workers help only when one job takes longer than 10 ms. Simultaneous
+            duplicates (section 5) become more likely.
+          </p>
+        </details>
       </section>
 
       <section id="run" class="column" aria-labelledby="run-title">
         <h2 id="run-title">Run it for real</h2>
+        <p>
+          The gateway, both mocks, PostgreSQL and Redis run locally with Docker Compose. This page
+          is not needed for that.
+        </p>
+        <details>
+          <summary>Show the commands</summary>
+          <pre
+            tabindex="0"
+            role="region"
+            aria-label="Commands to run the gateway"
+          ><code>cp .env.example .env
+docker compose up --build
+
+# Send a burst of 100,000 messages through the gateway
+curl -X POST "http://localhost:3002/simulate?count=100000"
+
+# Watch the totals per status grow at about 100 per second
+curl -s http://localhost:3000/messages</code></pre>
+          <p>Unit tests:</p>
+          <pre
+            tabindex="0"
+            role="region"
+            aria-label="Commands to run the unit tests"
+          ><code>cd service-b
+npm install
+npm test</code></pre>
+        </details>
       </section>
     </main>
 

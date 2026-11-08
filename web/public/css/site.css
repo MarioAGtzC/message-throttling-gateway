@@ -360,23 +360,167 @@ button:disabled:hover {
   margin: 0;
 }
 
-.card table {
+.card table,
+#limits-data table,
+#responses {
   width: 100%;
   border-collapse: collapse;
 }
 
 .card th,
-.card td {
+.card td,
+#limits-data th,
+#limits-data td,
+#responses th,
+#responses td {
   padding: 0.35rem 0.5rem;
   text-align: left;
   border-bottom: 1px solid var(--border);
 }
 
-.card th {
+.card th,
+#limits-data th,
+#responses thead th {
   color: var(--muted);
   font-family: var(--font-sans);
   font-size: 0.875rem;
   font-weight: 600;
+}
+
+/* Two limits timeline */
+.timeline {
+  margin: 1.5rem 0 0.5rem;
+}
+
+.chart {
+  width: 100%;
+  max-width: 40rem;
+  height: auto;
+}
+
+.chart text {
+  fill: var(--muted);
+  font-family: var(--font-sans);
+  font-size: 13px;
+}
+
+.chart .window {
+  fill: var(--surface);
+  stroke: var(--border);
+  stroke-width: 1.5;
+}
+
+.chart .axis line {
+  stroke: var(--border);
+}
+
+.chart .axis text,
+.chart .send-label {
+  text-anchor: middle;
+  font-family: var(--font-mono);
+}
+
+.chart .send {
+  fill: none;
+  stroke-width: 2;
+}
+
+.chart .send-200 {
+  stroke: var(--status-sent);
+}
+
+.chart .send-429 {
+  stroke: var(--status-retrying);
+  stroke-dasharray: 4 3;
+}
+
+.chart .send-label {
+  fill: var(--status-retrying);
+}
+
+#limits-data td {
+  white-space: nowrap;
+}
+
+summary {
+  cursor: pointer;
+  color: var(--link);
+}
+
+/* Limitations, decisions and commands */
+.limitation {
+  margin-block: 1.5rem;
+  padding: 1rem;
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: 8px;
+}
+
+.limitation h3 {
+  margin: 0 0 0.5rem;
+}
+
+.limitation details > p {
+  margin-bottom: 0;
+}
+
+#decisions details {
+  padding-block: 0.75rem;
+  border-bottom: 1px solid var(--border);
+}
+
+#decisions summary {
+  font-weight: 600;
+}
+
+#run pre {
+  padding: 0.75rem 1rem;
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: 8px;
+}
+
+/* Retries and responses */
+.backoff {
+  padding-left: 1.5rem;
+}
+
+.backoff li {
+  margin-block: 0.25rem;
+}
+
+/* A table wider than the column scrolls inside its box, never the page; the box takes keyboard focus to scroll. */
+.table-scroll {
+  overflow-x: auto;
+  margin-block: 1.5rem;
+}
+
+#responses th,
+#responses td {
+  vertical-align: top;
+}
+
+#responses caption {
+  text-align: left;
+  font-weight: 600;
+  margin-bottom: 0.5rem;
+}
+
+#responses tbody th {
+  font-family: var(--font-mono);
+}
+
+/* Route, description and body each take their own line. */
+#responses .route {
+  display: block;
+  white-space: nowrap;
+}
+
+#responses .body {
+  display: block;
+  margin-top: 0.25rem;
+  color: var(--muted);
+  overflow-wrap: anywhere;
 }
 
 /* Flow diagram */
