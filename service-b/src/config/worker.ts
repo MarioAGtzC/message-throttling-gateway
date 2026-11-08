@@ -21,7 +21,10 @@ export const messageWorker = new Worker('messages', async (job: Job) => {
     headers: { 'Content-Type': 'application/json' },
     body: JSON.stringify({ id, content, recipient }),
     signal: AbortSignal.timeout(5000),
-  }).catch(() => null);
+  }).catch((error) => {
+    console.error(`Send to Mock C failed for ${id}: ${error.message}`);
+    return null;
+  });
 
   if (response?.status === 429) {
     await prisma.message.update({

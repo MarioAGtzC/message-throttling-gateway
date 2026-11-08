@@ -101,8 +101,12 @@ describe('messageWorker - processor', () => {
   test('debe tratar un error de red como un 5xx: cuenta el reintento y marca FAILED', async () => {
     (prisma.message.update as jest.Mock).mockResolvedValue({});
     global.fetch = jest.fn().mockRejectedValue(new TypeError('fetch failed'));
+    const log = jest.spyOn(console, 'error').mockImplementation(() => {});
 
     await expect(workerProcessor(mockJob)).rejects.toThrow('Error enviando mensaje');
+
+    expect(log).toHaveBeenCalledWith(expect.stringContaining('fetch failed'));
+    log.mockRestore();
 
     expect(prisma.message.update).toHaveBeenNthCalledWith(2, {
       where: { id: 'msg-1' },
