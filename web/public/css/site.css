@@ -401,7 +401,7 @@ button:disabled:hover {
 .chart text {
   fill: var(--muted);
   font-family: var(--font-sans);
-  font-size: 11px;
+  font-size: 13px;
 }
 
 .chart .window {
