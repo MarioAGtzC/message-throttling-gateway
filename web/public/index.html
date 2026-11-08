@@ -569,8 +569,9 @@
           <p>
             PostgreSQL is the record. Once the gateway answers <code>202</code>, the message exists
             and <code>GET /messages/:id</code> can report it, whatever happens to the queue. Redis
-            runs with <code>appendonly yes</code>, so queued jobs survive a Redis restart too. The
-            cost is the gap between the two writes (section 5).
+            runs with <code>appendonly yes</code>, so queued jobs survive a Redis restart too,
+            except for up to about a second of writes if Redis crashes (it syncs its log once per
+            second by default). The cost is the gap between the two writes (section 5).
           </p>
         </details>
         <details>
