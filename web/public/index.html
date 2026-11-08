@@ -471,11 +471,12 @@
         </p>
 
         <article class="limitation">
-          <h3>A restart can leave a message PENDING forever</h3>
+          <h3>A restart or a Redis error can leave a message PENDING forever</h3>
           <p>
             Saving the message and queuing its job are two separate writes. If the gateway stops
-            right after saving m7, PostgreSQL says PENDING but Redis has no job for it, and nothing
-            looks for it again. If the sender repeats m7, the gateway finds the <code>id</code> and
+            right after saving m7, or Redis refuses the job and the gateway answers
+            <code>500</code>, PostgreSQL says PENDING but Redis has no job for it, and nothing looks
+            for it again. If the sender repeats m7, the gateway finds the <code>id</code> and
             answers <code>200</code>, so even a retry does not help. The step-by-step scenario
             "Restart with a message stuck in PENDING" walks through it.
           </p>
