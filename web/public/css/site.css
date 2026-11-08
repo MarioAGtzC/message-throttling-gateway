@@ -447,9 +447,42 @@ button:disabled:hover {
   white-space: nowrap;
 }
 
-#limits-data summary {
+summary {
   cursor: pointer;
   color: var(--link);
+}
+
+/* Limitations, decisions and commands */
+.limitation {
+  margin-block: 1.5rem;
+  padding: 1rem;
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: 8px;
+}
+
+.limitation h3 {
+  margin: 0 0 0.5rem;
+}
+
+.limitation details > p {
+  margin-bottom: 0;
+}
+
+#decisions details {
+  padding-block: 0.75rem;
+  border-bottom: 1px solid var(--border);
+}
+
+#decisions summary {
+  font-weight: 600;
+}
+
+#run pre {
+  padding: 0.75rem 1rem;
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: 8px;
 }
 
 /* Retries and responses */
