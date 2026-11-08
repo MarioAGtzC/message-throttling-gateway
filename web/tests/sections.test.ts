@@ -35,11 +35,11 @@ beforeEach(() => {
 });
 
 describe('explanatory sections', () => {
-  test('known limitations list the two gateway findings, each with its fix', () => {
+  test('known limitations list the remaining gateway finding, each with its fix', () => {
     const titles = [...document.querySelectorAll('#limitations h3')].map((h) => h.textContent);
-    expect(titles).toHaveLength(2);
+    expect(titles).toHaveLength(1);
     const fixes = sectionDetails('limitations');
-    expect(fixes).toHaveLength(2);
+    expect(fixes).toHaveLength(1);
     for (const fix of fixes)
       expect(fix.querySelector('summary')?.textContent).toBe('How would it be fixed?');
   });

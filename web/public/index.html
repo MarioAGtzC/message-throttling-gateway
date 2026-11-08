@@ -474,23 +474,6 @@
         <p>These are gaps in the gateway's code today, shown as they are.</p>
 
         <article class="limitation">
-          <h3>Mock A's <code>/simulate-real</code> sends numeric ids</h3>
-          <p>
-            <code>POST /simulate-real</code> sends <code>id: 0, 1, 2…</code> as numbers. The gateway
-            requires a string <code>id</code>, so every one of those messages gets
-            <code>400</code> and none is saved. <code>POST /simulate</code>, used everywhere on this
-            page, sends UUID strings and works.
-          </p>
-          <details>
-            <summary>How would it be fixed?</summary>
-            <p>
-              Send <code>String(i)</code> as the <code>id</code>, or remove the endpoint and keep
-              <code>/simulate</code>.
-            </p>
-          </details>
-        </article>
-
-        <article class="limitation">
           <h3>A message can reach Mock C twice</h3>
           <p>
             Intake is idempotent; delivery is not. The worker sends the request and only then marks
