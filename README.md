@@ -1,88 +1,75 @@
 # Message Throttling Gateway
 
-Componente que recibe ráfagas de 100k mensajes y los entrega respetando rate limit de 100 msg/s sin pérdidas.
+A gateway that absorbs large bursts of messages from one platform and delivers them to a rate-limited provider at a steady 100 messages per second, with persistence, retries and idempotent intake. Built with TypeScript, Express, BullMQ, Redis and PostgreSQL, and runnable end to end with Docker Compose, including mock services for both sides.
 
-## Inicio Rápido
+## The problem
+
+An upstream platform can emit tens of thousands of messages at once, while the provider that actually delivers them only accepts 100 requests per second and rejects the rest. Forwarding the burst directly would mean rejected sends, lost messages and duplicates when the sender retries. The gateway sits in between: it accepts every message immediately, stores it, and releases it to the provider at the rate the provider can take, retrying when the provider pushes back.
+
+## My role and process
+
+Technical challenge, built solo: design, implementation, tests and the local environment.
+
+The system has three services:
+
+- **Service B (the gateway).** `POST /messages` validates the payload, ignores any `id` it has already received, saves the message in PostgreSQL as `PENDING` and adds a job to a BullMQ queue, answering `202 Accepted` without waiting for delivery. A BullMQ worker, capped at 100 jobs per second, marks the message as in progress, forwards it to the provider and marks it `SENT`. A `429` or any other failed send is retried up to 5 attempts with exponential backoff starting at one second; a message that exhausts its attempts ends as `FAILED`. `GET /messages` returns the count per status and `GET /messages/:id` the state of one message.
+- **Mock A (the upstream platform).** `POST /simulate?count=N` generates N messages (100,000 by default) with random UUIDs and posts them to the gateway with up to 100 requests in flight.
+- **Mock C (the provider).** Accepts `POST /send-message` and enforces 100 requests per second, answering `429` beyond that.
+
+Key decisions:
+
+- **Store first, then queue.** Every accepted message is written to PostgreSQL before it is enqueued, so its state can always be queried, and Redis runs with append-only persistence so queued jobs survive a restart.
+- **Throttle at the worker.** BullMQ's built-in limiter spaces the sends to match the provider's limit instead of firing the burst and relying on retries.
+- **Idempotent intake.** The message `id` is the primary key; a repeated `id` is acknowledged and not enqueued again, so a sender's retry does not produce a second delivery.
+
+## Technologies and tools
+
+| Function | Technology |
+|---|---|
+| Language and runtime | TypeScript on Node.js |
+| HTTP API | Express 5, with request validation via express-validator |
+| Message persistence | PostgreSQL, accessed through Prisma ORM with versioned migrations |
+| Queue, throttling and retries | BullMQ on Redis (rate limiter, attempts, exponential backoff) |
+| Configuration | Typed environment variables via env-var |
+| Provider rate limit (mock) | express-rate-limit |
+| Test data (mock) | Faker for message IDs |
+| Testing | Jest with ts-jest and node-mocks-http; the database, queue and provider are mocked |
+| Local environment | Docker Compose: PostgreSQL, Redis and the three services, with health checks |
+
+## Results
+
+- A burst of any size is accepted immediately and delivered at the provider's rate, so the provider's `429` responses become retries instead of lost messages.
+- Each message's lifecycle (`PENDING`, in progress, `SENT`, `FAILED`) and its retry count are stored and can be queried individually or as totals.
+- Duplicate submissions of the same `id` are acknowledged without a second delivery.
+- Unit tests cover the intake endpoint (new and repeated messages), the status endpoints and the worker's success, `429` and failure paths.
+
+## Run it
+
+Requires Docker with Compose.
 
 ```bash
-# 1. Configurar entorno
 cp .env.example .env
+docker compose up --build
 
-# 2. Levantar servicios  
-docker-compose up --build
-
-# 3. Simular 100k mensajes (ráfaga de ~10s)
+# Send a burst of 100,000 messages through the gateway
 curl -X POST "http://localhost:3002/simulate?count=100000"
 
-# 4. Monitorear progreso (aumenta ~100/s)
+# Watch the totals per status grow at about 100 per second
 curl -s http://localhost:3000/messages
 ```
 
-## Pruebas
+Unit tests:
 
 ```bash
-# Tests unitarios
 cd service-b
-npm i
+npm install
 npm test
 ```
 
-## API Endpoints
+## Screenshots
 
-**Service B (Puerto 3000):**
-- `POST /messages` - Recibe mensaje de Plataforma A
-- `GET /messages` - Stats globales (pending, sent, failed, retrying)
-- `GET /messages/{id}` - Estado de mensaje específico
+No screenshots yet. Add them to `docs/screenshots/` and link them here: for example, the terminal output of a burst and the `GET /messages` totals while the queue drains.
 
-**Mock A (Puerto 3002):**
-- `POST /simulate?count=N` - Simula ráfaga de N mensajes
+## Links
 
-**Mock C (Puerto 3001):**
-- `POST /send-message` - Recibe mensaje de Plataforma B
-
-## Arquitectura y Decisiones Técnicas
-
-### Persistencia: PostgreSQL + Prisma
-**Justificación:** Garantía ACID para evitar pérdida de mensajes. Redis sería más rápido pero requiere configuración compleja para durabilidad.
-
-### Throttling: BullMQ + Redis
-**Justificación:** Control preciso de 100 msg/s con limiter incorporado. Distribuye envíos uniformemente y maneja reintentos automáticamente.
-
-### Idempotencia
-Verifica existencia por ID único antes de procesar. Si Plataforma A reenvía el mismo mensaje, se ignora sin duplicar envío.
-
-### Entrega Garantizada
-- **Persistencia:** Todos los mensajes se guardan en BD antes de procesar
-- **Reintentos:** 5 intentos con backoff exponencial en fallos 429/5xx  
-- **Recuperación:** Worker procesa cola automáticamente al reiniciar
-
-### Estados de Mensaje
-- `PENDING`: Recibido, esperando procesamiento
-- `RETRYING`: En proceso de envío
-- `SENT`: Entregado exitosamente
-- `FAILED`: Falló después de 5 reintentos
-
-## Respuestas a Preguntas de Diseño
-
-### 1. ¿Cómo garantizas que ningún mensaje se pierda si el proceso se reinicia?
-Todos los mensajes se persisten en PostgreSQL inmediatamente al recibirlos con estado `PENDING`. Al reiniciar, BullMQ automaticamente recupera jobs pendientes de Redis y continúa procesando.
-
-### 2. ¿Cómo escalarías para múltiples instancias sin duplicar envíos?
-BullMQ maneja múltiples workers automáticamente - cada job se procesa por una sola instancia. Para escalado adicional: usar Redis Cluster y sharding de la cola por destinatario.
-
-### 3. Tu solución procesa FIFO. ¿En qué escenario necesitarías priorización?
-Mensajes urgentes (alertas médicas, emergencias) o usuarios premium. Implementaría con múltiples colas BullMQ: `high-priority`, `normal`, `low-priority` procesadas por workers separados.
-
-## Limitaciones
-
-- **Orden de entrega:** No estrictamente FIFO debido a reintentos
-- **Rate limiting:** Basado en worker local, no distribuido
-- **Monitoreo:** Métricas básicas, falta dashboard tiempo real
-
-## Stack Tecnológico
-
-- **Node.js + TypeScript**: Desarrollo rápido y type safety
-- **BullMQ + Redis**: Queue robusta con persistencia
-- **PostgreSQL + Prisma**: Base de datos confiable con ORM moderno  
-- **Express**: API REST simple
-- **Docker Compose**: Orquestación local fácil
+No live demo or related repositories yet.
