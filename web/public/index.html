@@ -570,6 +570,8 @@
             role="region"
             aria-label="Commands to run the gateway"
           ><code>cp .env.example .env
+# Prisma reads DATABASE_URL when the service-b image is built
+echo "DATABASE_URL=postgresql://postgres:postgres@postgres:5432/messages" &gt; service-b/.env
 docker compose up --build
 
 # Send a burst of 100,000 messages through the gateway
